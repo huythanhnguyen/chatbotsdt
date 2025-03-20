@@ -3,7 +3,11 @@
  * Handles UI interactions and updates
  */
 
-const UI = (function() {
+// Khởi tạo UI đối tượng toàn cục trước để tránh lỗi tham chiếu
+window.UI = {};
+
+// Sau đó sử dụng IIFE để định nghĩa và gán các phương thức
+(function() {
     // UI state
     const state = {
         loading: false,
@@ -12,6 +16,9 @@ const UI = (function() {
         isInfoPanelVisible: false
     };
     
+    /**
+     * Initialize the UI
+     */
     function init() {
         // Check if templates exist
         const botTemplate = document.getElementById('bot-message-template');
@@ -31,44 +38,10 @@ const UI = (function() {
         if (isAuthenticated()) {
             loadAnalysisHistory();
         }
-        // Thêm vào UI.js, hàm init() hoặc một hàm thích hợp:
-        function enhanceUserInput() {
-            const userInput = document.getElementById('user-input');
-            if (userInput) {
-                // Thêm tooltip hoặc mô tả cho input
-                userInput.title = "Nhập số điện thoại để phân tích hoặc đặt câu hỏi về số đã phân tích";
-                
-                // Tùy chỉnh placeholder dựa trên trạng thái phân tích
-                if (state.currentAnalysis) {
-                    userInput.placeholder = `Đặt câu hỏi về số ${state.currentAnalysis.phoneNumber}...`;
-                } else {
-                    userInput.placeholder = "Nhập số điện thoại hoặc đặt câu hỏi...";
-                }
-            }
-        }
-
-        // Gọi hàm này sau khi phân tích số điện thoại
-        function updateUIAfterAnalysis() {
-            enhanceUserInput();
-            // Các cập nhật UI khác...
-        }
+        
+        // Enhance UI
+        enhanceChatDisplay();
     }
-
-/**
- * Initialize the UI
- */
-function init() {
-    // Set up UI event listeners
-    setupEventListeners();
-    
-    // Set up tabs
-    setupTabs();
-    
-    // Load history if user is authenticated
-    if (isAuthenticated()) {
-        loadAnalysisHistory();
-    }
-}
 
     /**
      * Load and display analysis history
@@ -326,15 +299,21 @@ function init() {
         setLoading(true);
         
         // Attempt login
-        const result = await Auth.login(email, password);
-        
-        setLoading(false);
-        
-        if (result.success) {
-            messageElement.textContent = '';
-            // Auth state change listener will handle UI changes
-        } else {
-            messageElement.textContent = result.error || 'Đăng nhập thất bại';
+        try {
+            const result = await Auth.login(email, password);
+            
+            setLoading(false);
+            
+            if (result.success) {
+                messageElement.textContent = '';
+                // Auth state change listener will handle UI changes
+            } else {
+                messageElement.textContent = result.error || 'Đăng nhập thất bại';
+            }
+        } catch (error) {
+            setLoading(false);
+            messageElement.textContent = 'Đăng nhập thất bại: ' + (error.message || 'Lỗi kết nối');
+            console.error('Login error:', error);
         }
     }
     
@@ -374,15 +353,21 @@ function init() {
         setLoading(true);
         
         // Attempt registration
-        const result = await Auth.register(name, email, password);
-        
-        setLoading(false);
-        
-        if (result.success) {
-            messageElement.textContent = '';
-            // Auth state change listener will handle UI changes
-        } else {
-            messageElement.textContent = result.error || 'Đăng ký thất bại';
+        try {
+            const result = await Auth.register(name, email, password);
+            
+            setLoading(false);
+            
+            if (result.success) {
+                messageElement.textContent = '';
+                // Auth state change listener will handle UI changes
+            } else {
+                messageElement.textContent = result.error || 'Đăng ký thất bại';
+            }
+        } catch (error) {
+            setLoading(false);
+            messageElement.textContent = 'Đăng ký thất bại: ' + (error.message || 'Lỗi kết nối');
+            console.error('Register error:', error);
         }
     }
     
@@ -425,49 +410,61 @@ function init() {
         setLoading(true);
         
         // Attempt to change password
-        const result = await Auth.changePassword(currentPassword, newPassword);
-        
-        setLoading(false);
-        
-        if (result.success) {
-            messageElement.textContent = 'Đã cập nhật mật khẩu thành công';
-            messageElement.style.color = 'var(--success-color)';
-            currentPasswordInput.value = '';
-            newPasswordInput.value = '';
-        } else {
-            messageElement.textContent = result.error || 'Không thể cập nhật mật khẩu';
+        try {
+            const result = await Auth.changePassword(currentPassword, newPassword);
+            
+            setLoading(false);
+            
+            if (result.success) {
+                messageElement.textContent = 'Đã cập nhật mật khẩu thành công';
+                messageElement.style.color = 'var(--success-color)';
+                currentPasswordInput.value = '';
+                newPasswordInput.value = '';
+            } else {
+                messageElement.textContent = result.error || 'Không thể cập nhật mật khẩu';
+                messageElement.style.color = 'var(--danger-color)';
+            }
+        } catch (error) {
+            setLoading(false);
+            messageElement.textContent = 'Không thể cập nhật: ' + (error.message || 'Lỗi kết nối');
             messageElement.style.color = 'var(--danger-color)';
         }
     }
     
    /**
- * Handle sending a message
- */
-function handleSendMessage() {
-    const userInput = document.getElementById('user-input');
-    if (!userInput) return;
-    
-    const text = userInput.value.trim();
-    if (!text) return;
-    
-    try {
-        // Add user message
-        const messageId = addUserMessage(text);
+     * Handle sending a message
+     */
+    function handleSendMessage() {
+        const userInput = document.getElementById('user-input');
+        if (!userInput) return;
         
-        if (messageId === null) {
-            debug('Failed to add user message - skipping processing');
-            return;
+        const text = userInput.value.trim();
+        if (!text) return;
+        
+        try {
+            // Add user message
+            const messageId = addUserMessage(text);
+            
+            if (messageId === null) {
+                debug('Failed to add user message - skipping processing');
+                return;
+            }
+            
+            // Clear input
+            userInput.value = '';
+            
+            // Process the message
+            if (typeof Chat !== 'undefined' && Chat && typeof Chat.processUserInput === 'function') {
+                Chat.processUserInput(text);
+            } else {
+                console.error('Chat.processUserInput is not available');
+                addBotMessage('Xin lỗi, hệ thống xử lý tin nhắn hiện không khả dụng. Vui lòng thử lại sau.');
+            }
+        } catch (error) {
+            debug('Error in handleSendMessage:', error);
+            addBotMessage('Xin lỗi, đã xảy ra lỗi khi xử lý tin nhắn. Vui lòng thử lại.');
         }
-        
-        // Clear input
-        userInput.value = '';
-        
-        // Process the message
-        Chat.processUserInput(text);
-    } catch (error) {
-        debug('Error in handleSendMessage:', error);
     }
-}
     
     /**
      * Handle category button click
@@ -512,7 +509,12 @@ function handleSendMessage() {
         addUserMessage(question);
         
         // Process the question
-        Chat.processUserInput(question);
+        if (typeof Chat !== 'undefined' && Chat && typeof Chat.processUserInput === 'function') {
+            Chat.processUserInput(question);
+        } else {
+            console.error('Chat.processUserInput is not available');
+            addBotMessage('Xin lỗi, hệ thống xử lý tin nhắn hiện không khả dụng. Vui lòng thử lại sau.');
+        }
     }
     
     /**
@@ -754,221 +756,230 @@ function handleSendMessage() {
     }
     
    /**
- * Add a user message to the chat
- * @param {string} text - Message content
- * @returns {string} Message ID
- */
-function addUserMessage(text) {
-    const chatMessages = document.getElementById('chat-messages');
-    const userMessageTemplate = document.getElementById('user-message-template');
-    
-    if (!chatMessages || !userMessageTemplate) {
-        debug('Cannot add user message - missing DOM elements');
-        return null;
-    }
-
-    try {
-        const messageId = `msg_user_${Date.now()}`;
-        const messageElement = userMessageTemplate.content.cloneNode(true);
-        const messageDiv = messageElement.querySelector('.message');
+     * Add a user message to the chat
+     * @param {string} text - Message content
+     * @returns {string} Message ID
+     */
+    function addUserMessage(text) {
+        const chatMessages = document.getElementById('chat-messages');
+        const userMessageTemplate = document.getElementById('user-message-template');
         
-        if (!messageDiv) {
-            debug('Cannot add user message - template structure issue');
+        if (!chatMessages || !userMessageTemplate) {
+            debug('Cannot add user message - missing DOM elements');
             return null;
         }
-        
-        messageDiv.id = messageId;
-        
-        const messageContentDiv = messageDiv.querySelector('.message-content');
-        if (messageContentDiv) {
-            messageContentDiv.textContent = text;
-        }
-        
-        chatMessages.appendChild(messageElement);
-        scrollToBottom();
-        
-        return messageId;
-    } catch (error) {
-        debug('Error adding user message:', error);
-        return null;
-    }
-}
-    
- /**
- * Add a bot message to the chat
- * @param {string} text - Message content
- * @param {object} analysisData - Optional analysis data
- * @returns {string} Message ID
- */
-function addBotMessage(text, analysisData = null) {
-    const chatMessages = document.getElementById('chat-messages');
-    const botMessageTemplate = document.getElementById('bot-message-template');
-    
-    if (!chatMessages || !botMessageTemplate) {
-        debug('Cannot add bot message - missing DOM elements');
-        return null;
-    }
 
-    try {
-        const messageId = `msg_bot_${Date.now()}`;
-        const messageElement = botMessageTemplate.content.cloneNode(true);
-        const messageDiv = messageElement.querySelector('.message');
-        
-        if (!messageDiv) {
-            debug('Cannot add bot message - template structure issue');
+        try {
+            const messageId = `msg_user_${Date.now()}`;
+            const messageElement = userMessageTemplate.content.cloneNode(true);
+            const messageDiv = messageElement.querySelector('.message');
+            
+            if (!messageDiv) {
+                debug('Cannot add user message - template structure issue');
+                return null;
+            }
+            
+            messageDiv.id = messageId;
+            
+            const messageContentDiv = messageDiv.querySelector('.message-content');
+            if (messageContentDiv) {
+                messageContentDiv.textContent = text;
+            }
+            
+            chatMessages.appendChild(messageElement);
+            scrollToBottom();
+            
+            return messageId;
+        } catch (error) {
+            debug('Error adding user message:', error);
             return null;
         }
+    }
+    
+    /**
+     * Add a bot message to the chat
+     * @param {string} text - Message content
+     * @param {object} analysisData - Optional analysis data
+     * @returns {string} Message ID
+     */
+    function addBotMessage(text, analysisData = null) {
+        const chatMessages = document.getElementById('chat-messages');
+        const botMessageTemplate = document.getElementById('bot-message-template');
         
-        messageDiv.id = messageId;
-        
-        const messageContentDiv = messageDiv.querySelector('.message-content');
-        if (messageContentDiv) {
-            messageContentDiv.textContent = text;
+        if (!chatMessages || !botMessageTemplate) {
+            debug('Cannot add bot message - missing DOM elements');
+            return null;
         }
-        
-        // Add feedback buttons
-        const feedbackButtons = messageDiv.querySelector('.feedback-buttons');
-        if (feedbackButtons) {
-            feedbackButtons.classList.remove('hidden');
-        }
-        
-        if (analysisData) {
-            // Thêm nút gợi ý câu hỏi
-            const suggestionText = document.createElement('div');
-            suggestionText.className = 'suggestion-text';
-            suggestionText.innerHTML = '<p>Bạn có thể hỏi thêm về:</p>';
-            messageDiv.appendChild(suggestionText);
+
+        try {
+            const messageId = `msg_bot_${Date.now()}`;
+            const messageElement = botMessageTemplate.content.cloneNode(true);
+            const messageDiv = messageElement.querySelector('.message');
             
-            // Thêm ví dụ câu hỏi có thể hỏi
-            const questionExamples = [
-                "Số này ảnh hưởng thế nào đến sự nghiệp của tôi?",
-                "Mối quan hệ với người khác có tốt không?",
-                "Số này có phải là số may mắn không?",
-                "Tôi có nên giữ số điện thoại này không?"
-            ];
+            if (!messageDiv) {
+                debug('Cannot add bot message - template structure issue');
+                return null;
+            }
             
-            const exampleContainer = document.createElement('div');
-            exampleContainer.className = 'question-examples';
+            messageDiv.id = messageId;
             
-            questionExamples.forEach(q => {
-                const exampleBtn = document.createElement('button');
-                exampleBtn.className = 'example-question-btn';
-                exampleBtn.textContent = q;
-                exampleBtn.addEventListener('click', () => {
-                    const userInput = document.getElementById('user-input');
-                    if (userInput) {
-                        userInput.value = q;
-                        userInput.focus();
-                    }
+            const messageContentDiv = messageDiv.querySelector('.message-content');
+            if (messageContentDiv) {
+                messageContentDiv.textContent = text;
+            }
+            
+            // Add feedback buttons
+            const feedbackButtons = messageDiv.querySelector('.feedback-buttons');
+            if (feedbackButtons) {
+                feedbackButtons.classList.remove('hidden');
+            }
+            
+            if (analysisData) {
+                // Thêm nút gợi ý câu hỏi
+                const suggestionText = document.createElement('div');
+                suggestionText.className = 'suggestion-text';
+                suggestionText.innerHTML = '<p>Bạn có thể hỏi thêm về:</p>';
+                messageDiv.appendChild(suggestionText);
+                
+                // Thêm ví dụ câu hỏi có thể hỏi
+                const questionExamples = [
+                    "Số này ảnh hưởng thế nào đến sự nghiệp của tôi?",
+                    "Mối quan hệ với người khác có tốt không?",
+                    "Số này có phải là số may mắn không?",
+                    "Tôi có nên giữ số điện thoại này không?"
+                ];
+                
+                const exampleContainer = document.createElement('div');
+                exampleContainer.className = 'question-examples';
+                
+                questionExamples.forEach(q => {
+                    const exampleBtn = document.createElement('button');
+                    exampleBtn.className = 'example-question-btn';
+                    exampleBtn.textContent = q;
+                    exampleBtn.addEventListener('click', () => {
+                        const userInput = document.getElementById('user-input');
+                        if (userInput) {
+                            userInput.value = q;
+                            userInput.focus();
+                        }
+                    });
+                    exampleContainer.appendChild(exampleBtn);
                 });
-                exampleContainer.appendChild(exampleBtn);
+                
+                messageDiv.appendChild(exampleContainer);
+                
+                // Lưu phân tích hiện tại
+                state.currentAnalysis = analysisData;
+                
+                // Cải thiện hiển thị phân tích
+                setTimeout(() => {
+                    enhanceAnalysisDisplay(analysisData);
+                    enhanceSuggestions();
+                }, 100);
+            }
+            
+            chatMessages.appendChild(messageElement);
+            scrollToBottom();
+            
+            return messageId;
+        } catch (error) {
+            debug('Error adding bot message:', error);
+            return null;
+        }
+    }
+    
+    function formatAnalysisData(data) {
+        const analysisElement = document.getElementById('analysis-container-template').content.cloneNode(true);
+        const container = analysisElement.querySelector('.analysis-container');
+        
+        // Kiểm tra cấu trúc dữ liệu và lấy kết quả phân tích
+        const analysisResult = data.result || data;
+        
+        // Set phone number
+        container.querySelector('.phone-number').textContent = formatPhoneNumber(data.phoneNumber);
+        
+        // Add star sequence (top 3 by energy level)
+        const starList = container.querySelector('.star-list');
+        
+        // Đảm bảo starSequence tồn tại trong dữ liệu
+        if (analysisResult.starSequence && analysisResult.starSequence.length > 0) {
+            // Sort stars by energy level (highest first)
+            const sortedStars = [...analysisResult.starSequence].sort((a, b) => b.energyLevel - a.energyLevel);
+            
+            // Display top stars
+            const topStars = sortedStars.slice(0, 3);
+            topStars.forEach(star => {
+                const starItem = document.createElement('div');
+                starItem.className = 'star-item';
+                
+                const starName = document.createElement('span');
+                starName.className = `star-name ${star.nature === 'Cát' ? 'auspicious' : (star.nature === 'Hung' ? 'inauspicious' : 'unknown')}`;
+                starName.textContent = star.name;
+                
+                const starPair = document.createElement('span');
+                starPair.className = 'star-pair';
+                starPair.textContent = star.originalPair;
+                
+                starItem.appendChild(starName);
+                starItem.appendChild(starPair);
+                starList.appendChild(starItem);
             });
-            
-            messageDiv.appendChild(exampleContainer);
         }
         
-        chatMessages.appendChild(messageElement);
-        scrollToBottom();
+        // Add energy balance information
+        const energyBalance = container.querySelector('.energy-balance');
         
-        return messageId;
-    } catch (error) {
-        debug('Error adding bot message:', error);
-        return null;
-    }
-}
-    
-function formatAnalysisData(data) {
-    const analysisElement = document.getElementById('analysis-container-template').content.cloneNode(true);
-    const container = analysisElement.querySelector('.analysis-container');
-    
-    // Kiểm tra cấu trúc dữ liệu và lấy kết quả phân tích
-    const analysisResult = data.result || data;
-    
-    // Set phone number
-    container.querySelector('.phone-number').textContent = formatPhoneNumber(data.phoneNumber);
-    
-    // Add star sequence (top 3 by energy level)
-    const starList = container.querySelector('.star-list');
-    
-    // Đảm bảo starSequence tồn tại trong dữ liệu
-    if (analysisResult.starSequence && analysisResult.starSequence.length > 0) {
-        // Sort stars by energy level (highest first)
-        const sortedStars = [...analysisResult.starSequence].sort((a, b) => b.energyLevel - a.energyLevel);
+        const balanceText = document.createElement('div');
         
-        // Display top stars
-        const topStars = sortedStars.slice(0, 3);
-        topStars.forEach(star => {
-            const starItem = document.createElement('div');
-            starItem.className = 'star-item';
-            
-            const starName = document.createElement('span');
-            starName.className = `star-name ${star.nature === 'Cát' ? 'auspicious' : (star.nature === 'Hung' ? 'inauspicious' : 'unknown')}`;
-            starName.textContent = star.name;
-            
-            const starPair = document.createElement('span');
-            starPair.className = 'star-pair';
-            starPair.textContent = star.originalPair;
-            
-            starItem.appendChild(starName);
-            starItem.appendChild(starPair);
-            starList.appendChild(starItem);
-        });
-    }
-    
-    // Add energy balance information
-    const energyBalance = container.querySelector('.energy-balance');
-    
-    const balanceText = document.createElement('div');
-    
-    // Kiểm tra và sử dụng giá trị balance
-    if (analysisResult.balance) {
-        switch(analysisResult.balance) {
-            case 'BALANCED':
-                balanceText.textContent = 'Cân bằng tốt giữa sao cát và hung';
-                balanceText.className = 'balance-text balanced';
-                break;
-            case 'CAT_HEAVY':
-                balanceText.textContent = 'Thiên về sao cát (>70%)';
-                balanceText.className = 'balance-text cat-heavy';
-                break;
-            case 'HUNG_HEAVY':
-                balanceText.textContent = 'Thiên về sao hung (>70%)';
-                balanceText.className = 'balance-text hung-heavy';
-                break;
-            default:
-                balanceText.textContent = 'Cân bằng không xác định';
-                balanceText.className = 'balance-text unknown';
+        // Kiểm tra và sử dụng giá trị balance
+        if (analysisResult.balance) {
+            switch(analysisResult.balance) {
+                case 'BALANCED':
+                    balanceText.textContent = 'Cân bằng tốt giữa sao cát và hung';
+                    balanceText.className = 'balance-text balanced';
+                    break;
+                case 'CAT_HEAVY':
+                    balanceText.textContent = 'Thiên về sao cát (>70%)';
+                    balanceText.className = 'balance-text cat-heavy';
+                    break;
+                case 'HUNG_HEAVY':
+                    balanceText.textContent = 'Thiên về sao hung (>70%)';
+                    balanceText.className = 'balance-text hung-heavy';
+                    break;
+                default:
+                    balanceText.textContent = 'Cân bằng không xác định';
+                    balanceText.className = 'balance-text unknown';
+            }
+        } else {
+            balanceText.textContent = 'Cân bằng không xác định';
+            balanceText.className = 'balance-text unknown';
         }
-    } else {
-        balanceText.textContent = 'Cân bằng không xác định';
-        balanceText.className = 'balance-text unknown';
+        
+        energyBalance.appendChild(balanceText);
+        
+        // Add energy levels - kiểm tra và sử dụng energyLevel
+        if (analysisResult.energyLevel) {
+            const energyLevels = document.createElement('div');
+            energyLevels.className = 'energy-levels';
+            energyLevels.innerHTML = `
+                <div class="energy-item">
+                    <span class="energy-label">Tổng:</span>
+                    <span class="energy-value">${analysisResult.energyLevel.total || 0}</span>
+                </div>
+                <div class="energy-item">
+                    <span class="energy-label">Cát:</span>
+                    <span class="energy-value positive">${analysisResult.energyLevel.cat || 0}</span>
+                </div>
+                <div class="energy-item">
+                    <span class="energy-label">Hung:</span>
+                    <span class="energy-value negative">${analysisResult.energyLevel.hung || 0}</span>
+                </div>
+            `;
+            energyBalance.appendChild(energyLevels);
+        }
+        
+        return container;
     }
-    
-    energyBalance.appendChild(balanceText);
-    
-    // Add energy levels - kiểm tra và sử dụng energyLevel
-    if (analysisResult.energyLevel) {
-        const energyLevels = document.createElement('div');
-        energyLevels.className = 'energy-levels';
-        energyLevels.innerHTML = `
-            <div class="energy-item">
-                <span class="energy-label">Tổng:</span>
-                <span class="energy-value">${analysisResult.energyLevel.total || 0}</span>
-            </div>
-            <div class="energy-item">
-                <span class="energy-label">Cát:</span>
-                <span class="energy-value positive">${analysisResult.energyLevel.cat || 0}</span>
-            </div>
-            <div class="energy-item">
-                <span class="energy-label">Hung:</span>
-                <span class="energy-value negative">${analysisResult.energyLevel.hung || 0}</span>
-            </div>
-        `;
-        energyBalance.appendChild(energyLevels);
-    }
-    
-    return container;
-}
     
     /**
      * Format a phone number for display
@@ -992,21 +1003,23 @@ function formatAnalysisData(data) {
     /**
      * Show the typing indicator
      */
-    // Ghi đè lên các hàm hiện tại trong UI.js
-    UI.showTypingIndicator = function() {
+    function showTypingIndicator() {
         const typingIndicator = document.getElementById('typing-indicator');
         if (typingIndicator) {
             typingIndicator.classList.remove('hidden');
         }
-    };
+    }
     
-    UI.hideTypingIndicator = function() {
+    /**
+     * Hide the typing indicator
+     */
+    function hideTypingIndicator() {
         const typingIndicator = document.getElementById('typing-indicator');
         if (typingIndicator) {
             typingIndicator.classList.add('hidden');
         }
-    };
-        
+    }
+    
     /**
      * Set loading state
      * @param {boolean} isLoading - Whether loading is in progress
@@ -1076,25 +1089,6 @@ function formatAnalysisData(data) {
     }
     
     /**
-     * Load and display analysis history
-     */
-    async function loadAnalysisHistory() {
-        try {
-            const historyResponse = await API.getAnalysisHistory();
-            state.analysisHistory = historyResponse.data || [];
-            
-            renderAnalysisHistory();
-            
-        } catch (error) {
-            debug('Error loading history:', error);
-            const historyContainer = document.getElementById('analysis-history');
-            if (historyContainer) {
-                historyContainer.innerHTML = '<div class="empty-history-message">Không thể tải lịch sử. Vui lòng thử lại sau.</div>';
-            }
-        }
-    }
-    
-    /**
      * Render analysis history
      */
     function renderAnalysisHistory() {
@@ -1131,7 +1125,12 @@ function formatAnalysisData(data) {
                 addUserMessage(analysis.phoneNumber);
                 
                 // Process the phone number
-                Chat.processUserInput(analysis.phoneNumber);
+                if (typeof Chat !== 'undefined' && Chat && typeof Chat.processUserInput === 'function') {
+                    Chat.processUserInput(analysis.phoneNumber);
+                } else {
+                    console.error('Chat.processUserInput is not available');
+                    addBotMessage('Xin lỗi, hệ thống xử lý tin nhắn hiện không khả dụng. Vui lòng thử lại sau.');
+                }
             });
             
             historyContainer.appendChild(historyElement);
@@ -1169,232 +1168,238 @@ function formatAnalysisData(data) {
         }
     }
     
-    // Return public methods
-// Return public methods
-return {
-    init,
-    addUserMessage,
-    addBotMessage,
-    showTypingIndicator,
-    hideTypingIndicator,
-    scrollToBottom,
-    clearChat,
-    toggleInfoPanel,
-    closeInfoPanel,
-    renderAnalysisHistory,
-    loadAnalysisHistory,  // Thêm hàm này vào public API
-    setLoading,
-    formatPhoneNumber
-};
-})();
-/**
- * Bổ sung cải tiến cho UI
- * Thêm vào cuối file ui.js
- */
-
-
-// Cải thiện hiển thị phân tích số điện thoại
-function enhanceAnalysisDisplay(analysisData) {
-    // Thêm hiệu ứng khi có kết quả phân tích mới
-    const analysisContainers = document.querySelectorAll('.analysis-container');
-    if (analysisContainers.length > 0) {
-        const lastContainer = analysisContainers[analysisContainers.length - 1];
-        lastContainer.classList.add('highlight-new');
-        
-        // Xóa hiệu ứng sau 2 giây
-        setTimeout(() => {
-            lastContainer.classList.remove('highlight-new');
-        }, 2000);
-    }
-    
-    // Thêm biểu đồ trực quan cho cân bằng năng lượng
-    if (analysisData && analysisData.energyLevel) {
-        addEnergyChart(analysisData.energyLevel);
-    }
-}
-
-// Thêm biểu đồ trực quan cho năng lượng
-function addEnergyChart(energyLevel) {
-    const energyBalance = document.querySelector('.energy-balance');
-    if (!energyBalance) return;
-    
-    // Tạo phần tử canvas cho biểu đồ
-    const chartContainer = document.createElement('div');
-    chartContainer.className = 'energy-chart-container';
-    chartContainer.style.marginTop = '15px';
-    chartContainer.style.height = '120px';
-    
-    // Thêm canvas vào container
-    const canvas = document.createElement('canvas');
-    canvas.id = 'energy-chart';
-    canvas.height = 120;
-    chartContainer.appendChild(canvas);
-    
-    // Thêm container vào energy balance
-    energyBalance.appendChild(chartContainer);
-    
-    // Vẽ biểu đồ đơn giản bằng canvas
-    const ctx = canvas.getContext('2d');
-    const totalWidth = canvas.width;
-    const height = 30;
-    const y = 30;
-    
-    // Tính tỷ lệ
-    const total = energyLevel.cat + Math.abs(energyLevel.hung);
-    const catWidth = total > 0 ? (energyLevel.cat / total) * totalWidth : 0;
-    
-    // Vẽ thanh Cát (màu xanh)
-    ctx.fillStyle = '#4caf50';
-    ctx.fillRect(0, y, catWidth, height);
-    
-    // Vẽ thanh Hung (màu đỏ)
-    ctx.fillStyle = '#f44336';
-    ctx.fillRect(catWidth, y, totalWidth - catWidth, height);
-    
-    // Thêm nhãn
-    ctx.fillStyle = '#333';
-    ctx.font = '12px Arial';
-    ctx.fillText(`Cát: ${energyLevel.cat}`, 10, y - 5);
-    ctx.fillText(`Hung: ${energyLevel.hung}`, totalWidth - 80, y - 5);
-    
-    // Thêm đường phân chia giữa
-    ctx.strokeStyle = '#333';
-    ctx.beginPath();
-    ctx.moveTo(catWidth, y - 10);
-    ctx.lineTo(catWidth, y + height + 10);
-    ctx.stroke();
-    
-    // Thêm nhãn phần trăm
-    const catPercent = total > 0 ? Math.round((energyLevel.cat / total) * 100) : 0;
-    const hungPercent = 100 - catPercent;
-    
-    ctx.font = 'bold 14px Arial';
-    ctx.fillStyle = '#fff';
-    ctx.fillText(`${catPercent}%`, catWidth / 2 - 15, y + height / 2 + 5);
-    ctx.fillText(`${hungPercent}%`, catWidth + (totalWidth - catWidth) / 2 - 15, y + height / 2 + 5);
-}
-
-// Cải thiện gợi ý
-function enhanceSuggestions() {
-    const suggestionChips = document.querySelectorAll('.suggestion-chips');
-    
-    suggestionChips.forEach(container => {
-        // Thêm gợi ý về cách sử dụng
-        const helpText = document.createElement('div');
-        helpText.className = 'suggestion-help';
-        helpText.textContent = 'Nhấn vào các gợi ý dưới đây để xem thêm thông tin:';
-        helpText.style.fontSize = '0.9rem';
-        helpText.style.color = '#666';
-        helpText.style.marginBottom = '8px';
-        
-        container.insertBefore(helpText, container.firstChild);
-        
-        // Thêm hiệu ứng nhấp nháy để thu hút sự chú ý
-        const buttons = container.querySelectorAll('.category-btn');
-        
-        buttons.forEach((btn, index) => {
+    /* Các hàm cải tiến UI */
+    function enhanceAnalysisDisplay(analysisData) {
+        // Thêm hiệu ứng khi có kết quả phân tích mới
+        const analysisContainers = document.querySelectorAll('.analysis-container');
+        if (analysisContainers.length > 0) {
+            const lastContainer = analysisContainers[analysisContainers.length - 1];
+            lastContainer.classList.add('highlight-new');
+            
+            // Xóa hiệu ứng sau 2 giây
             setTimeout(() => {
-                btn.classList.add('pulse-animation');
-                
-                setTimeout(() => {
-                    btn.classList.remove('pulse-animation');
-                }, 1000);
-            }, index * 300);
-        });
-    });
-}
-
-// Cải thiện hiển thị chat
-function enhanceChatDisplay() {
-    // Thêm hướng dẫn nhanh vào đầu chat
-    const chatMessages = document.getElementById('chat-messages');
-    if (chatMessages && chatMessages.children.length === 0) {
-        const guideElement = document.createElement('div');
-        guideElement.className = 'quick-guide';
-        guideElement.innerHTML = `
-            <div class="guide-title">
-                <i class="fas fa-lightbulb"></i> Hướng dẫn nhanh
-            </div>
-            <div class="guide-content">
-                <p>Nhập số điện thoại (VD: 0931328208) và nhấn Enter để phân tích.</p>
-                <p>Bạn cũng có thể đặt các câu hỏi về ý nghĩa của số.</p>
-            </div>
-        `;
+                lastContainer.classList.remove('highlight-new');
+            }, 2000);
+        }
         
-        guideElement.style.background = '#f8f9fa';
-        guideElement.style.padding = '12px 15px';
-        guideElement.style.borderRadius = '8px';
-        guideElement.style.margin = '10px 0 20px';
-        guideElement.style.border = '1px solid #e0e0e0';
-        
-        chatMessages.appendChild(guideElement);
+        // Thêm biểu đồ trực quan cho cân bằng năng lượng
+        if (analysisData && analysisData.energyLevel) {
+            addEnergyChart(analysisData.energyLevel);
+        }
     }
-}
-
-// Gọi các hàm cải tiến khi trang đã tải xong
-document.addEventListener('DOMContentLoaded', function() {
-    // Thêm CSS Inline cho hiệu ứng pulse
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes pulse-animation {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); box-shadow: 0 0 10px rgba(67, 97, 238, 0.4); }
-            100% { transform: scale(1); }
-        }
-        
-        .pulse-animation {
-            animation: pulse-animation 1s ease-in-out;
-        }
-        
-        .highlight-new {
-            animation: highlight 1s ease-in-out;
-        }
-        
-        @keyframes highlight {
-            0% { box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1); }
-            50% { box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.4); }
-            100% { box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1); }
-        }
-        
-        .energy-chart-container {
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-            padding: 10px;
-            background: white;
-        }
-        
-        .quick-guide .guide-title {
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: var(--primary-color);
-        }
-    `;
-    document.head.appendChild(style);
     
-    // Các cải tiến UI
-    enhanceChatDisplay();
+    function addEnergyChart(energyLevel) {
+        const energyBalance = document.querySelector('.energy-balance');
+        if (!energyBalance) return;
+        
+        // Tạo phần tử canvas cho biểu đồ
+        const chartContainer = document.createElement('div');
+        chartContainer.className = 'energy-chart-container';
+        chartContainer.style.marginTop = '15px';
+        chartContainer.style.height = '120px';
+        
+        // Thêm canvas vào container
+        const canvas = document.createElement('canvas');
+        canvas.id = 'energy-chart';
+        canvas.height = 120;
+        chartContainer.appendChild(canvas);
+        
+        // Thêm container vào energy balance
+        energyBalance.appendChild(chartContainer);
+        
+        // Vẽ biểu đồ đơn giản bằng canvas
+        const ctx = canvas.getContext('2d');
+        const totalWidth = canvas.width;
+        const height = 30;
+        const y = 30;
+        
+        // Tính tỷ lệ
+        const total = energyLevel.cat + Math.abs(energyLevel.hung);
+        const catWidth = total > 0 ? (energyLevel.cat / total) * totalWidth : 0;
+        
+        // Vẽ thanh Cát (màu xanh)
+        ctx.fillStyle = '#4caf50';
+        ctx.fillRect(0, y, catWidth, height);
+        
+        // Vẽ thanh Hung (màu đỏ)
+        ctx.fillStyle = '#f44336';
+        ctx.fillRect(catWidth, y, totalWidth - catWidth, height);
+        
+        // Thêm nhãn
+        ctx.fillStyle = '#333';
+        ctx.font = '12px Arial';
+        ctx.fillText(`Cát: ${energyLevel.cat}`, 10, y - 5);
+        ctx.fillText(`Hung: ${energyLevel.hung}`, totalWidth - 80, y - 5);
+        
+        // Thêm đường phân chia giữa
+        ctx.strokeStyle = '#333';
+        ctx.beginPath();
+        ctx.moveTo(catWidth, y - 10);
+        ctx.lineTo(catWidth, y + height + 10);
+        ctx.stroke();
+        
+        // Thêm nhãn phần trăm
+        const catPercent = total > 0 ? Math.round((energyLevel.cat / total) * 100) : 0;
+        const hungPercent = 100 - catPercent;
+        
+        ctx.font = 'bold 14px Arial';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(`${catPercent}%`, catWidth / 2 - 15, y + height / 2 + 5);
+        ctx.fillText(`${hungPercent}%`, catWidth + (totalWidth - catWidth) / 2 - 15, y + height / 2 + 5);
+    }
     
-    // Để các hàm này có thể được gọi từ các nơi khác
+    function enhanceSuggestions() {
+        const suggestionChips = document.querySelectorAll('.suggestion-chips');
+        
+        suggestionChips.forEach(container => {
+            // Thêm gợi ý về cách sử dụng
+            const helpText = document.createElement('div');
+            helpText.className = 'suggestion-help';
+            helpText.textContent = 'Nhấn vào các gợi ý dưới đây để xem thêm thông tin:';
+            helpText.style.fontSize = '0.9rem';
+            helpText.style.color = '#666';
+            helpText.style.marginBottom = '8px';
+            
+            container.insertBefore(helpText, container.firstChild);
+            
+            // Thêm hiệu ứng nhấp nháy để thu hút sự chú ý
+            const buttons = container.querySelectorAll('.category-btn');
+            
+            buttons.forEach((btn, index) => {
+                setTimeout(() => {
+                    btn.classList.add('pulse-animation');
+                    
+                    setTimeout(() => {
+                        btn.classList.remove('pulse-animation');
+                    }, 1000);
+                }, index * 300);
+            });
+        });
+    }
+    
+    function enhanceChatDisplay() {
+        // Thêm hướng dẫn nhanh vào đầu chat
+        const chatMessages = document.getElementById('chat-messages');
+        if (chatMessages && chatMessages.children.length === 0) {
+            const guideElement = document.createElement('div');
+            guideElement.className = 'quick-guide';
+            guideElement.innerHTML = `
+                <div class="guide-title">
+                    <i class="fas fa-lightbulb"></i> Hướng dẫn nhanh
+                </div>
+                <div class="guide-content">
+                    <p>Nhập số điện thoại (VD: 0931328208) và nhấn Enter để phân tích.</p>
+                    <p>Bạn cũng có thể đặt các câu hỏi về ý nghĩa của số.</p>
+                </div>
+            `;
+            
+            guideElement.style.background = '#f8f9fa';
+            guideElement.style.padding = '12px 15px';
+            guideElement.style.borderRadius = '8px';
+            guideElement.style.margin = '10px 0 20px';
+            guideElement.style.border = '1px solid #e0e0e0';
+            
+            chatMessages.appendChild(guideElement);
+        }
+    }
+    
+    // Thêm các phương thức vào đối tượng UI toàn cục
+    window.UI.init = init;
+    window.UI.addUserMessage = addUserMessage;
+    window.UI.addBotMessage = addBotMessage;
+    window.UI.showTypingIndicator = showTypingIndicator;
+    window.UI.hideTypingIndicator = hideTypingIndicator;
+    window.UI.scrollToBottom = scrollToBottom;
+    window.UI.clearChat = clearChat;
+    window.UI.toggleInfoPanel = toggleInfoPanel;
+    window.UI.closeInfoPanel = closeInfoPanel;
+    window.UI.renderAnalysisHistory = renderAnalysisHistory;
+    window.UI.loadAnalysisHistory = loadAnalysisHistory;
+    window.UI.setLoading = setLoading;
+    window.UI.formatPhoneNumber = formatPhoneNumber;
     window.UI.enhanceAnalysisDisplay = enhanceAnalysisDisplay;
     window.UI.enhanceSuggestions = enhanceSuggestions;
-});
-
-// Mở rộng hàm addBotMessage để tự động gọi các cải tiến
-const originalAddBotMessage = UI.addBotMessage;
-UI.addBotMessage = function(text, analysisData = null) {
-    // Gọi hàm gốc
-    const messageId = originalAddBotMessage.call(this, text, analysisData);
+    window.UI.enhanceChatDisplay = enhanceChatDisplay;
     
-    // Thêm các cải tiến nếu có dữ liệu phân tích
-    if (analysisData) {
-        setTimeout(() => {
-            UI.enhanceAnalysisDisplay(analysisData);
-            UI.enhanceSuggestions();
-        }, 100);
-    }
-    
-    return messageId;
-};
-
-// Export the UI service for use in other modules
-window.UI = UI;
+    // Thêm CSS hiệu ứng
+    document.addEventListener('DOMContentLoaded', function() {
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse-animation {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.05); box-shadow: 0 0 10px rgba(67, 97, 238, 0.4); }
+                100% { transform: scale(1); }
+            }
+            
+            .pulse-animation {
+                animation: pulse-animation 1s ease-in-out;
+            }
+            
+            .highlight-new {
+                animation: highlight 1s ease-in-out;
+            }
+            
+            @keyframes highlight {
+                0% { box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1); }
+                50% { box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.4); }
+                100% { box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1); }
+            }
+            
+            .energy-chart-container {
+                border: 1px solid #e0e0e0;
+                border-radius: 6px;
+                padding: 10px;
+                background: white;
+            }
+            
+            .quick-guide .guide-title {
+                font-weight: 600;
+                margin-bottom: 8px;
+                color: var(--primary-color);
+            }
+            
+            /* Sửa lỗi hiển thị tab thông tin */
+            .info-tabs {
+                display: flex;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                background-color: #f8f8f8;
+                border-bottom: 1px solid #e0e0e0;
+            }
+            
+            .info-tabs::-webkit-scrollbar {
+                display: none;
+            }
+            
+            .info-tab-button {
+                flex: 1;
+                min-width: 80px;
+                white-space: nowrap;
+                padding: 10px 15px;
+                background: none;
+                border: none;
+                border-bottom: 2px solid transparent;
+                color: #666;
+                font-size: 14px;
+                cursor: pointer;
+                transition: all 0.2s;
+                text-align: center;
+            }
+            
+            .info-tab-button.active {
+                border-bottom-color: var(--primary-color);
+                color: var(--primary-color);
+                font-weight: 600;
+                background-color: rgba(67, 97, 238, 0.05);
+            }
+            
+            /* Sửa lỗi hiển thị typing indicator */
+            #typing-indicator.hidden {
+                display: none !important;
+            }
+        `;
+        document.head.appendChild(style);
+    });
+})();
