@@ -1091,52 +1091,120 @@ window.UI = {};
     /**
      * Render analysis history
      */
-    function renderAnalysisHistory() {
-        const historyContainer = document.getElementById('analysis-history');
-        if (!historyContainer) return;
-        
-        // Clear container
-        historyContainer.innerHTML = '';
-        
-        // Check if history is empty
-        if (!state.analysisHistory || state.analysisHistory.length === 0) {
-            historyContainer.innerHTML = '<div class="empty-history-message">Chưa có lịch sử phân tích.</div>';
-            return;
-        }
-        
-        // Add history items
-        state.analysisHistory.forEach(analysis => {
-            const historyTemplate = document.getElementById('history-item-template');
-            if (!historyTemplate) return;
-            
-            const historyElement = historyTemplate.content.cloneNode(true);
-            const historyItem = historyElement.querySelector('.history-item');
-            
-            // Format phone number
-            historyItem.querySelector('.history-phone').textContent = formatPhoneNumber(analysis.phoneNumber);
-            
-            // Format date
-            const date = new Date(analysis.createdAt);
-            historyItem.querySelector('.history-time').textContent = formatDate(date);
-            
-            // Add click handler
-            historyItem.addEventListener('click', () => {
-                // Add user message with the phone number
-                addUserMessage(analysis.phoneNumber);
-                
-                // Process the phone number
-                if (typeof Chat !== 'undefined' && Chat && typeof Chat.processUserInput === 'function') {
-                    Chat.processUserInput(analysis.phoneNumber);
-                } else {
-                    console.error('Chat.processUserInput is not available');
-                    addBotMessage('Xin lỗi, hệ thống xử lý tin nhắn hiện không khả dụng. Vui lòng thử lại sau.');
-                }
-            });
-            
-            historyContainer.appendChild(historyElement);
-        });
+    /**
+ * Render analysis history
+ */
+function renderAnalysisHistory() {
+    const historyContainer = document.getElementById('analysis-history');
+    if (!historyContainer) return;
+    
+    // Clear container
+    historyContainer.innerHTML = '';
+    
+    // Check if history is empty
+    if (!state.analysisHistory || state.analysisHistory.length === 0) {
+        historyContainer.innerHTML = '<div class="empty-history-message">Chưa có lịch sử phân tích.</div>';
+        return;
     }
     
+    // Sắp xếp lịch sử theo thời gian, mới nhất lên đầu
+    const sortedHistory = [...state.analysisHistory].sort((a, b) => {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+    
+    // Add history items
+    sortedHistory.forEach(analysis => {
+        const historyTemplate = document.getElementById('history-item-template');
+        if (!historyTemplate) return;
+        
+        const historyElement = historyTemplate.content.cloneNode(true);
+        const historyItem = historyElement.querySelector('.history-item');
+        
+        // Format phone number
+        historyItem.querySelector('.history-phone').textContent = formatPhoneNumber(analysis.phoneNumber);
+        
+        // Format date
+        const date = new Date(analysis.createdAt);
+        
+        // Tạo thành phần thời gian và thông tin cân bằng
+        const timeContainer = historyItem.querySelector('.history-time');
+        timeContainer.innerHTML = '';
+        
+        // Hiển thị thời gian
+        const timeSpan = document.createElement('span');
+        timeSpan.textContent = formatDate(date);
+        timeContainer.appendChild(timeSpan);
+        
+        // Hiển thị thông tin cân bằng nếu có
+        if (analysis.result && analysis.result.balance) {
+            const balanceSpan = document.createElement('span');
+            balanceSpan.className = 'history-balance';
+            
+            switch(analysis.result.balance) {
+                case 'BALANCED':
+                    balanceSpan.classList.add('balanced');
+                    balanceSpan.innerHTML = '<i class="fas fa-balance-scale"></i> Cân bằng';
+                    break;
+                case 'CAT_HEAVY':
+                    balanceSpan.classList.add('cat-heavy');
+                    balanceSpan.innerHTML = '<i class="fas fa-sun"></i> Thiên cát';
+                    break;
+                case 'HUNG_HEAVY':
+                    balanceSpan.classList.add('hung-heavy');
+                    balanceSpan.innerHTML = '<i class="fas fa-cloud"></i> Thiên hung';
+                    break;
+            }
+            
+            timeContainer.appendChild(balanceSpan);
+        }
+        
+        // Thêm thông tin về năng lượng
+        if (analysis.result && analysis.result.energyLevel) {
+            const metaDiv = document.createElement('div');
+            metaDiv.className = 'history-meta';
+            
+            // Stars info
+            if (analysis.result.starSequence && analysis.result.starSequence.length > 0) {
+                const starCount = analysis.result.starSequence.length;
+                metaDiv.innerHTML += `<span><i class="fas fa-star"></i> ${starCount} sao</span>`;
+            }
+            
+            // Energy rating
+            const ratingDiv = document.createElement('div');
+            ratingDiv.className = 'rating';
+            
+            const catDiv = document.createElement('span');
+            catDiv.className = 'cat-rating';
+            catDiv.innerHTML = `<i class="fas fa-plus-circle"></i> ${analysis.result.energyLevel.cat || 0}`;
+            
+            const hungDiv = document.createElement('span');
+            hungDiv.className = 'hung-rating';
+            hungDiv.innerHTML = `<i class="fas fa-minus-circle"></i> ${Math.abs(analysis.result.energyLevel.hung || 0)}`;
+            
+            ratingDiv.appendChild(catDiv);
+            ratingDiv.appendChild(hungDiv);
+            metaDiv.appendChild(ratingDiv);
+            
+            historyItem.appendChild(metaDiv);
+        }
+        
+        // Add click handler
+        historyItem.addEventListener('click', () => {
+            // Add user message with the phone number
+            addUserMessage(analysis.phoneNumber);
+            
+            // Process the phone number
+            Chat.processUserInput(analysis.phoneNumber);
+            
+            // Close info panel on mobile
+            if (window.innerWidth <= 992) {
+                closeInfoPanel();
+            }
+        });
+        
+        historyContainer.appendChild(historyElement);
+    });
+}
     /**
      * Format a date for display
      * @param {Date} date - Date to format
@@ -1276,7 +1344,11 @@ window.UI = {};
             });
         });
     }
-    
+    // Thêm listener cho nút đăng xuất thay thế
+    const logoutBtnAlt = document.getElementById('logout-btn-alt');
+    if (logoutBtnAlt) {
+        logoutBtnAlt.addEventListener('click', handleLogout);
+    }
     function enhanceChatDisplay() {
         // Thêm hướng dẫn nhanh vào đầu chat
         const chatMessages = document.getElementById('chat-messages');
@@ -1403,3 +1475,56 @@ window.UI = {};
         document.head.appendChild(style);
     });
 })();
+/**
+ * Thêm hiệu ứng ripple khi click vào tabs
+ * Thêm vào cuối file js của bạn hoặc tạo file mới
+ */
+
+document.addEventListener('DOMContentLoaded', function() {
+    const buttons = document.querySelectorAll('.info-tab-button');
+    
+    buttons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            const ripple = document.createElement('span');
+            ripple.classList.add('ripple');
+            this.appendChild(ripple);
+            
+            const x = e.clientX - e.target.getBoundingClientRect().left;
+            const y = e.clientY - e.target.getBoundingClientRect().top;
+            
+            ripple.style.left = `${x}px`;
+            ripple.style.top = `${y}px`;
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        });
+    });
+    
+    // Thêm biến màu primary-color-rgb vào CSS root
+    // Cần thiết cho hiệu ứng ripple
+    const root = document.documentElement;
+    const primaryColor = getComputedStyle(root).getPropertyValue('--primary-color').trim();
+    
+    // Chuyển đổi hex sang rgb
+    const rgb = hexToRgb(primaryColor) || {r: 67, g: 97, b: 238}; // Giá trị mặc định nếu chuyển đổi thất bại
+    root.style.setProperty('--primary-color-rgb', `${rgb.r}, ${rgb.g}, ${rgb.b}`);
+});
+
+// Hàm chuyển đổi màu hex sang rgb
+function hexToRgb(hex) {
+    // Loại bỏ # nếu có
+    hex = hex.replace(/^#/, '');
+    
+    // Xử lý cả hex ngắn và dài
+    if (hex.length === 3) {
+        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    
+    const result = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+}

@@ -142,7 +142,12 @@ async function processPhoneNumber(phoneNumber) {
             // Store current analysis - response có dữ liệu trong response.analysis
             const analysisData = response.analysis;
             state.currentAnalysis = analysisData;
-            
+        
+            // Thêm đoạn này để lưu vào ConversationState
+            if (window.ConversationState) {
+                ConversationState.setCurrentAnalysis(analysisData);
+                ConversationState.saveState(); // Lưu trạng thái
+            }
             // Check if interpretation is available
             let interpretation = '';
             if (analysisData && analysisData.geminiResponse) {

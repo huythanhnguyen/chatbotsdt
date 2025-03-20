@@ -14,45 +14,66 @@ const Auth = (function() {
      * Initialize the auth service
      * @returns {Promise} Initialization result
      */
-    async function init() {
-        try {
-            // Get user from local storage
-            const storedUser = getUser();
-            const token = getAuthToken();
+    /**
+ * Sửa hàm init trong Auth service
+ * Thêm xử lý lỗi tốt hơn và timeout cho verifyToken
+ */
+
+async function init() {
+    try {
+        // Get user from local storage
+        const storedUser = getUser();
+        const token = getAuthToken();
+        
+        if (token && storedUser) {
+            currentUser = storedUser;
             
-            if (token && storedUser) {
-                currentUser = storedUser;
+            // Thêm xử lý timeout cho verifyToken
+            try {
+                // Sử dụng Promise với timeout
+                const verifyPromise = API.verifyToken();
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => {
+                        reject(new Error('Token verification timeout'));
+                    }, 3000); // 3 giây là đủ cho việc xác thực token
+                });
                 
-                // Verify token with the server
-                try {
-                    const { valid, user } = await API.verifyToken();
+                // Chạy cả hai promise với Promise.race
+                const { valid, user } = await Promise.race([verifyPromise, timeoutPromise]);
+                
+                if (valid && user) {
+                    // Update the user data with the latest from the server
+                    currentUser = user;
+                    setUser(user);
                     
-                    if (valid && user) {
-                        // Update the user data with the latest from the server
-                        currentUser = user;
-                        setUser(user);
-                        
-                        return { authenticated: true, user };
-                    } else {
-                        // Token is invalid, log the user out
-                        await logout(false); // Không gửi request đến server
-                        return { authenticated: false };
-                    }
-                } catch (error) {
-                    // Lỗi xác thực token, đăng xuất người dùng
-                    debug('Error verifying token:', error);
+                    return { authenticated: true, user };
+                } else {
+                    // Token is invalid, log the user out
                     await logout(false); // Không gửi request đến server
-                    return { authenticated: false, error };
+                    return { authenticated: false };
                 }
+            } catch (error) {
+                // Xử lý timeout hoặc lỗi xác thực khác
+                debug('Error verifying token:', error);
+                
+                // Nếu là lỗi timeout, sử dụng thông tin hiện có
+                if (error.message === 'Token verification timeout' || error.message === 'Request timeout') {
+                    debug('Using cached user data due to server timeout');
+                    return { authenticated: true, user: currentUser };
+                }
+                
+                // Nếu là lỗi khác, đăng xuất
+                await logout(false);
+                return { authenticated: false, error };
             }
-            
-            return { authenticated: false };
-        } catch (error) {
-            debug('Auth init error:', error);
-            return { authenticated: false, error };
         }
+        
+        return { authenticated: false };
+    } catch (error) {
+        debug('Auth init error:', error);
+        return { authenticated: false, error };
     }
-    
+}
     /**
      * Login with email and password
      * @param {string} email - User email

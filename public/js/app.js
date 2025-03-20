@@ -156,31 +156,41 @@ function updateUserInfo() {
 /**
  * Initialize authentication
  */
+/**
+ * Cải thiện hàm initializeAuth trong app.js
+ * Thêm xử lý lỗi tốt hơn và timeout
+ */
+
 async function initializeAuth() {
     debug('Initializing Auth service...');
     
     try {
-        // Kiểm tra Auth module tồn tại
-        if (typeof Auth === 'undefined' || !Auth) {
-            throw new Error('Auth module is not defined');
+        // Thêm xử lý timeout cho Auth.init
+        const authInitPromise = Auth.init();
+        const timeoutPromise = new Promise((resolve) => {
+            setTimeout(() => {
+                debug('Auth initialization timeout, continuing with default state');
+                resolve({ authenticated: false, timeout: true });
+            }, 5000); // 5 giây là thời gian tối đa chờ khởi tạo Auth
+        });
+        
+        // Chạy cả hai promise với Promise.race
+        const authResult = await Promise.race([authInitPromise, timeoutPromise]);
+        
+        if (authResult.timeout) {
+            console.warn('Authentication service timed out. Continuing with offline mode.');
+            // Có thể hiển thị thông báo cho người dùng biết rằng đang ở chế độ offline
         }
         
-        // Kiểm tra Auth.init tồn tại
-        if (typeof Auth.init !== 'function') {
-            throw new Error('Auth.init is not a function');
-        }
-        
-        // Initialize auth service
-        const authResult = await Auth.init();
         debug('Auth initialization result:', authResult);
         
         return authResult;
     } catch (error) {
         console.error('Auth initialization failed:', error);
-        throw error;
+        // Trả về đối tượng mặc định để ứng dụng vẫn tiếp tục
+        return { authenticated: false, error: error.message };
     }
 }
-
 /**
  * Initialize UI components
  */

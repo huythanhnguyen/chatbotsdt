@@ -1138,3 +1138,295 @@ header p {
     from { opacity: 0.7; }
     to { opacity: 1; }
 }
+/* Thêm vào cuối file styles.css */
+
+/* Nút đăng xuất nổi bật */
+.btn-logout {
+    background-color: var(--danger-color);
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: var(--radius-md);
+    font-size: var(--font-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-logout:hover {
+    background-color: #d32f2f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-logout:active {
+    transform: translateY(0);
+}
+
+.btn-logout i {
+    font-size: 16px;
+}
+
+/* Nút đăng xuất thay thế trong tab tài khoản */
+.btn-logout-alt {
+    background-color: var(--danger-color);
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: var(--radius-md);
+    font-size: var(--font-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-logout-alt:hover {
+    background-color: #d32f2f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Cải thiện User Header */
+.user-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+    padding: var(--space-md);
+    background-color: white;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.user-info {
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 1.1rem;
+}
+
+/* Cải thiện Account Section */
+.account-section {
+    padding: var(--space-md);
+}
+
+.account-section h4 {
+    color: var(--primary-color);
+    margin-bottom: var(--space-md);
+    font-size: 1.1rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: var(--space-xs);
+}
+
+.account-info {
+    background-color: var(--background-color);
+    padding: var(--space-md);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-md);
+    box-shadow: var(--shadow-xs);
+}
+
+.account-info p {
+    margin-bottom: var(--space-sm);
+    display: flex;
+    justify-content: space-between;
+}
+
+.account-info p:last-child {
+    margin-bottom: 0;
+}
+
+/* Cải thiện main header */
+header {
+    background-color: var(--primary-color);
+    color: var(--text-light);
+    padding: var(--space-md) 0;
+    margin-bottom: var(--space-lg);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+header h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: var(--space-xs);
+    letter-spacing: 0.5px;
+}
+
+header p {
+    font-size: 1rem;
+    opacity: 0.9;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Cải thiện chat-header */
+.chat-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: var(--text-light);
+    padding: var(--space-md) var(--space-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Media queries cho responsive */
+@media (max-width: 768px) {
+    .user-header {
+        flex-direction: row;
+        align-items: center;
+        padding: var(--space-sm);
+    }
+    
+    .btn-logout {
+        padding: 6px 12px;
+        font-size: 0.9rem;
+    }
+    
+    .user-info {
+        font-size: 1rem;
+    }
+}
+/* Thêm CSS cho lịch sử phân tích */
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+}
+
+.history-header h4 {
+    font-size: 1.1rem;
+    color: var(--primary-color);
+    margin: 0;
+}
+
+.analysis-history-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.history-item {
+    background-color: var(--background-color);
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.history-item:hover {
+    background-color: var(--primary-light);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.history-phone {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--primary-color);
+    margin-bottom: var(--space-xs);
+}
+
+.history-time {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+}
+
+.history-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-top: var(--space-xs);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.history-meta .rating {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.history-meta .cat-rating {
+    color: var(--auspicious-color);
+}
+
+.history-meta .hung-rating {
+    color: var(--inauspicious-color);
+    margin-left: var(--space-sm);
+}
+
+.empty-history-message {
+    color: var(--text-secondary);
+    text-align: center;
+    padding: var(--space-lg);
+    font-style: italic;
+}
+
+/* Tab adjustments for only 2 tabs */
+.info-tab-button {
+    flex: 1;
+    font-size: 1rem;
+}
+
+/* Clear button styling */
+.clear-button {
+    background-color: var(--background-color);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all var(--transition-fast);
+}
+
+.clear-button:hover {
+    background-color: var(--danger-light);
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+/* Modifier để hiển thị balance */
+.history-balance {
+    font-size: 0.85rem;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    margin-left: auto;
+}
+
+.history-balance.balanced {
+    background-color: rgba(33, 150, 243, 0.1);
+    color: #2196f3;
+}
+
+.history-balance.cat-heavy {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: var(--auspicious-color);
+}
+
+.history-balance.hung-heavy {
+    background-color: rgba(244, 67, 54, 0.1);
+    color: var(--inauspicious-color);
+}
+
+.history-balance i {
+    margin-right: 4px;
+}

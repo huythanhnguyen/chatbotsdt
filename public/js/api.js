@@ -12,61 +12,65 @@ const API = (function() {
      * @param {boolean} auth - Whether to include authentication token
      * @returns {Promise} Response from the API
      */
-    async function request(endpoint, method = 'GET', data = null, auth = true) {
-        // Construct the full URL
-        const url = `${CONFIG.API_BASE_URL}${endpoint}`;
-        
-        // Setup request options
-        const options = {
-            method,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        };
-        
+    /**
+ * Sửa hàm request trong API Service
+ * Thêm xử lý timeout và retry tốt hơn
+ */
 
-        // Add authentication token if required
-        if (auth) {
-            const token = getAuthToken();
-            if (token) {
-                options.headers['Authorization'] = `Bearer ${token}`;
-            } else if (auth) {
-                // Nếu yêu cầu xác thực nhưng không có token, ném lỗi sớm
-                throw new Error('Không tìm thấy token xác thực');
-            }
+async function request(endpoint, method = 'GET', data = null, auth = true) {
+    // Construct the full URL
+    const url = `${CONFIG.API_BASE_URL}${endpoint}`;
+    
+    // Setup request options
+    const options = {
+        method,
+        headers: {
+            'Content-Type': 'application/json'
         }
-        
-        // Add request body if data is provided
-        if (data) {
-            options.body = JSON.stringify(data);
-        }
-        
-        try {
-            // Setup timeout for request
-            const timeoutId = setTimeout(() => {
-                throw new Error('Request timeout');
-            }, CONFIG.REQUEST_TIMEOUT);
-            
-            // Send the request
-            const response = await fetch(url, options);
-            
-            // Clear timeout
-            clearTimeout(timeoutId);
-            
-            // Parse the response
-            const responseData = await response.json();
-            
-            // Check if the request was successful
-            if (!response.ok) {
-                throw new Error(responseData.message || 'API request failed');
-            }
-            
-            return responseData;
-        } catch (error) {
-            debug('API Error:', error);
-            throw error;
+    };
+    
+    // Add authentication token if required
+    if (auth) {
+        const token = getAuthToken();
+        if (token) {
+            options.headers['Authorization'] = `Bearer ${token}`;
+        } else if (auth) {
+            // Nếu yêu cầu xác thực nhưng không có token, ném lỗi sớm
+            throw new Error('Không tìm thấy token xác thực');
         }
     }
+    
+    // Add request body if data is provided
+    if (data) {
+        options.body = JSON.stringify(data);
+    }
+    
+    try {
+        // Sử dụng Promise.race để xử lý timeout
+        const fetchPromise = fetch(url, options);
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error('Request timeout'));
+            }, CONFIG.REQUEST_TIMEOUT);
+        });
+        
+        // Chạy cả hai promise
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
+        
+        // Parse the response
+        const responseData = await response.json();
+        
+        // Check if the request was successful
+        if (!response.ok) {
+            throw new Error(responseData.message || 'API request failed');
+        }
+        
+        return responseData;
+    } catch (error) {
+        debug('API Error:', error);
+        throw error;
+    }
+}
     
     // Auth API
     
@@ -111,7 +115,9 @@ const API = (function() {
      */
     async function logout() {
         try {
-            await request(CONFIG.AUTH.LOGOUT, 'POST');
+            // Skip server request since the endpoint doesn't exist
+            debug('Skipping server logout request - endpoint not available');
+            // await request(CONFIG.AUTH.LOGOUT, 'POST');
         } catch (error) {
             // Even if the server request fails, we still want to clear local storage
             debug('Logout error:', error);
