@@ -1052,3 +1052,89 @@ header p {
     background-color: var(--primary-color);
     color: white;
 }
+/* Sửa lỗi hiển thị tab trong panel thông tin */
+
+/* Cải thiện container của các tab */
+.info-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    background-color: #f9f9f9;
+    width: 100%;
+    overflow-x: auto; /* Cho phép cuộn ngang nếu cần */
+    -webkit-overflow-scrolling: touch; /* Cuộn mượt trên iOS */
+    scrollbar-width: none; /* Ẩn thanh cuộn trên Firefox */
+}
+
+.info-tabs::-webkit-scrollbar {
+    display: none; /* Ẩn thanh cuộn trên Chrome/Safari */
+}
+
+/* Cải thiện nút tab */
+.info-tab-button {
+    flex: 1;
+    min-width: 90px; /* Kích thước tối thiểu */
+    background: none;
+    border: none;
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    text-align: center;
+    position: relative;
+}
+
+/* Tạo hiệu ứng active cho tab */
+.info-tab-button.active {
+    border-bottom-color: var(--primary-color);
+    color: var(--primary-color);
+    font-weight: 600;
+    background-color: rgba(67, 97, 238, 0.05);
+}
+
+/* Hiệu ứng hover */
+.info-tab-button:hover:not(.active) {
+    background-color: rgba(0, 0, 0, 0.03);
+    color: var(--text-primary);
+}
+
+/* Tối ưu cho màn hình nhỏ */
+@media (max-width: 576px) {
+    .info-tabs {
+        justify-content: flex-start; /* Đảm bảo các tab bắt đầu từ trái sang */
+        padding: 0 2px;
+    }
+    
+    .info-tab-button {
+        padding: 8px 10px;
+        font-size: 13px;
+        min-width: 80px;
+    }
+    
+    /* Thêm viền cho tab đang active để dễ nhìn trên mobile */
+    .info-tab-button.active {
+        box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.05);
+    }
+}
+
+/* Đảm bảo container nội dung tab hiển thị đúng */
+.info-tab-content {
+    display: none;
+    padding: 12px;
+    overflow-y: auto;
+    background-color: white;
+}
+
+.info-tab-content.active {
+    display: block;
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* Hiệu ứng khi chuyển tab */
+@keyframes fadeIn {
+    from { opacity: 0.7; }
+    to { opacity: 1; }
+}
