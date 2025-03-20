@@ -37,33 +37,67 @@ function init() {
      * Process user input (message or phone number)
      * @param {string} input - User input text
      */
-    async function processUserInput(input) {
-        if (state.processingInput) return;
-        
-        state.processingInput = true;
-        
-        // Show typing indicator
-        UI.showTypingIndicator();
-        
-        try {
-            // Check if input is a phone number
-            if (isPhoneNumber(input)) {
-                await processPhoneNumber(input);
-            } else {
-                // Đây là một câu hỏi hoặc lệnh khác
-                await processQuestion(input);
-            }
-        } catch (error) {
-            debug('Error processing input:', error);
-            UI.addBotMessage('Xin lỗi, đã xảy ra lỗi khi xử lý yêu cầu của bạn. Vui lòng thử lại sau.');
-        } finally {
-            // Hide typing indicator
-            UI.hideTypingIndicator();
-            
-            // Reset processing state
-            state.processingInput = false;
+// Cập nhật hoàn chỉnh cho hàm processUserInput trong chat.js
+async function processUserInput(input) {
+    // Nếu đang xử lý tin nhắn khác, không làm gì cả
+    if (state.processingInput) return;
+    
+    // Đánh dấu đang xử lý
+    state.processingInput = true;
+    
+    try {
+        // Hiển thị typing indicator
+        const typingIndicator = document.getElementById('typing-indicator');
+        if (typingIndicator) {
+            typingIndicator.classList.remove('hidden');
         }
+        
+        // Xử lý input
+        if (isPhoneNumber(input)) {
+            await processPhoneNumber(input);
+        } else {
+            await processQuestion(input);
+        }
+    } catch (error) {
+        console.error('Error processing input:', error);
+        UI.addBotMessage('Xin lỗi, đã xảy ra lỗi khi xử lý yêu cầu của bạn.');
+    } finally {
+        // Ẩn typing indicator
+        const typingIndicator = document.getElementById('typing-indicator');
+        if (typingIndicator) {
+            typingIndicator.classList.add('hidden');
+        }
+        
+        // Đánh dấu đã xử lý xong
+        state.processingInput = false;
     }
+}
+
+// Thêm vào chat.js - Đảm bảo typing indicator luôn ẩn ban đầu
+function initializeChat() {
+    try {
+        // Kiểm tra container
+        const chatMessages = document.getElementById('chat-messages');
+        if (!chatMessages) {
+            debug('Cannot initialize chat - chat-messages container not found');
+            return false;
+        }
+        
+        // Ẩn typing indicator ban đầu
+        const typingIndicator = document.getElementById('typing-indicator');
+        if (typingIndicator) {
+            typingIndicator.classList.add('hidden');
+        }
+        
+        // Thêm tin nhắn chào mừng
+        UI.addBotMessage('Xin chào! Tôi là trợ lý phân tích số điện thoại theo phương pháp Tứ Cát Tứ Hung. Bạn có thể nhập số điện thoại để tôi phân tích hoặc đặt câu hỏi về ý nghĩa các con số.');
+        
+        return true;
+    } catch (error) {
+        debug('Error initializing chat:', error);
+        return false;
+    }
+}
     
     /**
      * Check if input is a phone number
