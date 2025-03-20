@@ -190,3 +190,102 @@
         max-height: 70vh;
     }
 }
+/* Thêm vào file mobile.css */
+
+/* Cải thiện layout tổng thể cho mobile */
+@media (max-width: 992px) {
+    /* Giảm margin của header */
+    header {
+        margin-bottom: 0;
+        padding: var(--space-sm) 0;
+    }
+    
+    /* Di chuyển user header lên gần header chính */
+    .user-header {
+        margin-top: 8px;
+        margin-bottom: 8px;
+        padding-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    /* Tăng chiều cao khu vực chat */
+    .chat-panel {
+        height: calc(100vh - 140px);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Thiết lập lại vùng hiển thị tin nhắn */
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: var(--space-md);
+    }
+    
+    /* Cố định phần nhập liệu ở dưới */
+    .chat-input {
+        position: sticky;
+        bottom: 0;
+        background-color: #fff;
+        padding: 10px;
+        border-top: 1px solid var(--border-color);
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        z-index: 10;
+    }
+    
+    /* Tăng kích thước tin nhắn */
+    .message {
+        max-width: 85%;
+        font-size: 16px;
+    }
+    
+    /* Làm tin nhắn người dùng rõ ràng hơn */
+    .user-message {
+        background-color: var(--primary-light);
+        border-right: 3px solid var(--primary-color);
+    }
+    
+    /* Làm tin nhắn bot rõ ràng hơn */
+    .bot-message {
+        background-color: #f5f5f5;
+        border-left: 3px solid var(--secondary-color);
+    }
+}
+
+/* Tối ưu thêm cho điện thoại nhỏ */
+@media (max-width: 576px) {
+    /* Đảm bảo container không có padding dư thừa */
+    .container {
+        padding: 8px;
+    }
+    
+    /* Tăng kích thước tin nhắn trên màn hình nhỏ */
+    .message {
+        max-width: 90%;
+        padding: 12px;
+    }
+    
+    /* Tăng kích thước font */
+    .message-content {
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    
+    /* Làm cho nút đăng xuất nhỏ hơn */
+    #logout-btn {
+        padding: 4px 10px;
+        font-size: 14px;
+    }
+    
+    /* Cải thiện thanh nhập liệu */
+    .chat-input input {
+        height: 44px;
+        padding: 8px 40px 8px 12px;
+    }
+    
+    .chat-input button {
+        right: 14px;
+    }
+}
