@@ -289,3 +289,51 @@
         right: 14px;
     }
 }
+/* CSS bổ sung để đảm bảo phần nhập tin nhắn luôn nằm dưới cùng */
+
+/* Thiết lập layout cho chatbox */
+.chat-panel {
+    display: flex;
+    flex-direction: column;
+    height: 75vh; /* Mặc định cho desktop */
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    scroll-behavior: smooth;
+}
+
+.chat-input {
+    position: sticky;
+    bottom: 0;
+    background-color: white;
+    border-top: 1px solid var(--border-color);
+    z-index: 10;
+}
+
+/* Điều chỉnh cho mobile */
+@media (max-width: 992px) {
+    .chat-panel {
+        height: calc(100vh - 150px);
+        margin-bottom: 0;
+    }
+    
+    /* Chỉnh lại vị trí của chat input trên mobile */
+    .chat-input {
+        padding: 10px;
+        border-top: 1px solid var(--border-color);
+        box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+    }
+    
+    /* Tối ưu cho màn hình thấp */
+    @media (max-height: 600px) {
+        .chat-panel {
+            height: calc(100vh - 120px);
+        }
+    }
+}
