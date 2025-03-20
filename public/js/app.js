@@ -16,17 +16,48 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Đợi một chút để đảm bảo DOM đã sẵn sàng
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Khởi tạo xác thực trước tiên
-        const authResult = await initializeAuth();
+        // Khởi tạo theo thứ tự an toàn
+        const modules = [
+            { name: "Auth", init: initializeAuth },
+            { name: "UI", init: initializeUI },
+            { name: "Chat", init: initializeChat }
+        ];
         
-        // Khởi tạo UI trước chat
-        await initializeUI();
+        let authResult = { authenticated: false };
+        
+        // Khởi tạo từng module theo thứ tự
+        for (let module of modules) {
+            try {
+                debug(`Initializing ${module.name} service...`);
+                const result = await module.init();
+                
+                if (module.name === "Auth") {
+                    authResult = result;
+                }
+                
+                debug(`${module.name} initialized successfully`);
+            } catch (error) {
+                debug(`${module.name} initialization failed:`, error);
+                
+                // Xử lý lỗi khởi tạo cho từng module
+                if (module.name === "Auth") {
+                    authResult = { authenticated: false, error };
+                    continue; // Tiếp tục với module tiếp theo
+                } else if (module.name === "UI") {
+                    // Thử khởi tạo UI đơn giản nếu khởi tạo đầy đủ thất bại
+                    initializeFallbackUI();
+                } else if (module.name === "Chat") {
+                    // Hiển thị thông báo lỗi nhưng vẫn tiếp tục
+                    showSimpleErrorMessage("Khởi tạo chat thất bại. Một số tính năng có thể không hoạt động.");
+                }
+            }
+        }
         
         // Hiển thị container phù hợp dựa vào kết quả xác thực
         showAppropriateContainer(authResult.authenticated);
         
-        // Khởi tạo Chat sau khi UI đã hiển thị
-        await initializeChat();
+        // Áp dụng các sửa lỗi sau khi khởi tạo
+        applyFixes();
         
         // Ẩn màn hình loading
         hideLoading();
@@ -87,7 +118,7 @@ function showAppropriateContainer(isAuthenticated) {
  * Cập nhật thông tin người dùng trong giao diện
  */
 function updateUserInfo() {
-    const currentUser = Auth.getCurrentUser();
+    const currentUser = typeof Auth !== 'undefined' && Auth.getCurrentUser ? Auth.getCurrentUser() : null;
     
     if (currentUser) {
         const userNameElement = document.getElementById('user-name');
@@ -121,6 +152,16 @@ async function initializeAuth() {
     debug('Initializing Auth service...');
     
     try {
+        // Kiểm tra Auth module tồn tại
+        if (typeof Auth === 'undefined' || !Auth) {
+            throw new Error('Auth module is not defined');
+        }
+        
+        // Kiểm tra Auth.init tồn tại
+        if (typeof Auth.init !== 'function') {
+            throw new Error('Auth.init is not a function');
+        }
+        
         // Initialize auth service
         const authResult = await Auth.init();
         debug('Auth initialization result:', authResult);
@@ -139,10 +180,20 @@ async function initializeUI() {
     debug('Initializing UI service...');
     
     try {
+        // Kiểm tra xem UI đã được định nghĩa chưa
+        if (typeof UI === 'undefined' || !UI) {
+            throw new Error('UI module is not defined');
+        }
+        
+        if (typeof UI.init !== 'function') {
+            throw new Error('UI.init is not a function');
+        }
+        
         // Initialize UI service
         UI.init();
         
         debug('UI initialized successfully');
+        return true;
     } catch (error) {
         console.error('UI initialization failed:', error);
         throw error;
@@ -152,61 +203,199 @@ async function initializeUI() {
 /**
  * Initialize chat functionality
  */
-function initializeChat() {
+async function initializeChat() {
     debug('Initializing Chat service...');
     
     try {
+        // Kiểm tra xem Chat đã được định nghĩa chưa
+        if (typeof Chat === 'undefined' || !Chat) {
+            throw new Error('Chat module is not defined');
+        }
+        
+        if (typeof Chat.init !== 'function') {
+            throw new Error('Chat.init is not a function');
+        }
+        
         // Initialize chat service
-        Chat.init();
+        const result = Chat.init();
         
         debug('Chat initialized successfully');
+        return result;
     } catch (error) {
         console.error('Chat initialization failed:', error);
         throw error;
     }
 }
+
 /**
- * Hiển thị màn hình loading
+ * Khởi tạo UI dự phòng (đơn giản) khi khởi tạo chính thất bại
  */
-function showLoading() {
-    const loadingContainer = document.getElementById('loading-container');
-    if (loadingContainer) {
-        loadingContainer.style.display = 'flex';
+function initializeFallbackUI() {
+    debug('Initializing fallback UI...');
+    
+    try {
+        // Kiểm tra nếu UI đã được định nghĩa
+        if (typeof UI === 'undefined' || !UI) {
+            // Tạo đối tượng UI cơ bản
+            window.UI = {
+                init: function() {
+                    debug('Fallback UI initialized');
+                },
+                
+                addUserMessage: function(text) {
+                    const chatMessages = document.getElementById('chat-messages');
+                    if (!chatMessages) return null;
+                    
+                    const messageElement = document.createElement('div');
+                    messageElement.className = 'message user-message';
+                    messageElement.innerHTML = `<div class="message-content">${text}</div>`;
+                    chatMessages.appendChild(messageElement);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    
+                    return `msg_user_${Date.now()}`;
+                },
+                
+                addBotMessage: function(text) {
+                    const chatMessages = document.getElementById('chat-messages');
+                    if (!chatMessages) return null;
+                    
+                    const messageElement = document.createElement('div');
+                    messageElement.className = 'message bot-message';
+                    messageElement.innerHTML = `<div class="message-content">${text}</div>`;
+                    chatMessages.appendChild(messageElement);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    
+                    return `msg_bot_${Date.now()}`;
+                },
+                
+                showTypingIndicator: function() {
+                    const typingIndicator = document.getElementById('typing-indicator');
+                    if (typingIndicator) {
+                        typingIndicator.classList.remove('hidden');
+                    }
+                },
+                
+                hideTypingIndicator: function() {
+                    const typingIndicator = document.getElementById('typing-indicator');
+                    if (typingIndicator) {
+                        typingIndicator.classList.add('hidden');
+                    }
+                },
+                
+                scrollToBottom: function() {
+                    const chatMessages = document.getElementById('chat-messages');
+                    if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
+                },
+                
+                clearChat: function() {
+                    const chatMessages = document.getElementById('chat-messages');
+                    if (chatMessages) chatMessages.innerHTML = '';
+                },
+                
+                loadAnalysisHistory: function() {
+                    debug('History loading not available in fallback UI');
+                    return Promise.resolve([]);
+                },
+                
+                toggleInfoPanel: function() {
+                    const infoPanel = document.getElementById('info-panel');
+                    const overlay = document.getElementById('overlay');
+                    if (infoPanel && overlay) {
+                        infoPanel.classList.toggle('visible');
+                        overlay.classList.toggle('visible');
+                    }
+                },
+                
+                closeInfoPanel: function() {
+                    const infoPanel = document.getElementById('info-panel');
+                    const overlay = document.getElementById('overlay');
+                    if (infoPanel && overlay) {
+                        infoPanel.classList.remove('visible');
+                        overlay.classList.remove('visible');
+                    }
+                },
+                
+                formatPhoneNumber: function(phoneNumber) {
+                    if (!phoneNumber) return '';
+                    const cleaned = String(phoneNumber).replace(/\D/g, '');
+                    if (cleaned.length === 10) {
+                        return cleaned.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3');
+                    } else if (cleaned.length === 11) {
+                        return cleaned.replace(/(\d{5})(\d{3})(\d{3})/, '$1 $2 $3');
+                    }
+                    return cleaned;
+                },
+                
+                setLoading: function(isLoading) {
+                    // Vô hiệu/kích hoạt các nút và input
+                    const buttons = document.querySelectorAll('button');
+                    const inputs = document.querySelectorAll('input');
+                    
+                    buttons.forEach(button => {
+                        button.disabled = isLoading;
+                    });
+                    
+                    inputs.forEach(input => {
+                        input.disabled = isLoading;
+                    });
+                }
+            };
+            
+            // Thêm thông báo về UI dự phòng
+            const chatMessages = document.getElementById('chat-messages');
+            if (chatMessages) {
+                chatMessages.innerHTML = `
+                    <div class="message bot-message">
+                        <div class="message-content">
+                            <strong>Chú ý:</strong> Ứng dụng đang chạy ở chế độ đơn giản do gặp lỗi khởi tạo.
+                            Một số tính năng có thể không hoạt động. Vui lòng tải lại trang nếu bạn gặp vấn đề.
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Fallback UI initialization failed:', error);
+        return false;
     }
 }
 
 /**
- * Ẩn màn hình loading
+ * Hiển thị thông báo lỗi đơn giản
  */
-function hideLoading() {
-    const loadingContainer = document.getElementById('loading-container');
-    if (loadingContainer) {
-        loadingContainer.style.display = 'none';
-    }
-}
-/**
- * Hiển thị container thích hợp dựa trên trạng thái xác thực
- * @param {boolean} isAuthenticated - Trạng thái xác thực của người dùng
- */
-function showAppropriateContainer(isAuthenticated) {
-    const authContainer = document.getElementById('auth-container');
-    const appContainer = document.getElementById('app-container');
-    
-    if (authContainer && appContainer) {
-        if (isAuthenticated) {
-            // Nếu đã đăng nhập: hiển thị ứng dụng, ẩn form đăng nhập
-            authContainer.style.display = 'none';
-            appContainer.style.display = 'block';
-            
-            // Cập nhật thông tin người dùng
-            updateUserInfo();
+function showSimpleErrorMessage(message) {
+    try {
+        const errorElement = document.createElement('div');
+        errorElement.className = 'simple-error-message';
+        errorElement.textContent = message;
+        
+        // Định dạng thông báo lỗi
+        errorElement.style.backgroundColor = '#ffebee';
+        errorElement.style.color = '#d32f2f';
+        errorElement.style.padding = '10px 15px';
+        errorElement.style.borderRadius = '4px';
+        errorElement.style.margin = '10px 0';
+        errorElement.style.fontSize = '14px';
+        errorElement.style.textAlign = 'center';
+        
+        // Thêm vào chat hoặc container phù hợp
+        const chatMessages = document.getElementById('chat-messages');
+        if (chatMessages) {
+            chatMessages.appendChild(errorElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         } else {
-            // Nếu chưa đăng nhập: hiển thị form đăng nhập, ẩn ứng dụng
-            authContainer.style.display = 'flex';
-            appContainer.style.display = 'none';
+            const appContainer = document.getElementById('app-container');
+            if (appContainer) {
+                appContainer.insertBefore(errorElement, appContainer.firstChild);
+            }
         }
+    } catch (error) {
+        console.error('Error showing simple message:', error);
     }
 }
+
 /**
  * Show error message to the user
  * @param {string} message - Error message to display
@@ -222,11 +411,11 @@ function showErrorMessage(message) {
         errorElement.style.top = '10px';
         errorElement.style.left = '50%';
         errorElement.style.transform = 'translateX(-50%)';
-        errorElement.style.backgroundColor = 'var(--danger-color)';
+        errorElement.style.backgroundColor = 'var(--danger-color, #f44336)';
         errorElement.style.color = 'white';
         errorElement.style.padding = '10px 20px';
-        errorElement.style.borderRadius = 'var(--radius-md)';
-        errorElement.style.boxShadow = 'var(--shadow-md)';
+        errorElement.style.borderRadius = 'var(--radius-md, 8px)';
+        errorElement.style.boxShadow = 'var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.1))';
         errorElement.style.zIndex = '9999';
         errorElement.style.maxWidth = '80%';
         errorElement.style.textAlign = 'center';
@@ -258,107 +447,116 @@ function showErrorMessage(message) {
 }
 
 /**
- * Handle window resize event
- * Adjusts UI based on screen size
+ * Áp dụng các sửa lỗi sau khi khởi tạo
  */
-window.addEventListener('resize', function() {
-    // Close info panel on mobile when resizing to desktop
-    if (window.innerWidth > 992) {
-        UI.closeInfoPanel();
-    }
-});
+function applyFixes() {
+    // Sửa lỗi tab thông tin
+    fixInfoTabs();
+    
+    // Sửa lỗi hiển thị typing indicator
+    fixTypingIndicator();
+    
+    // Sửa lỗi khung chat
+    fixChatFramework();
+}
 
-// Lắng nghe sự kiện thay đổi trạng thái đăng nhập
-document.addEventListener('authStateChanged', function() {
-    const isLoggedIn = Auth.isAuthenticated();
-    debug('Auth state changed event:', isLoggedIn ? 'Logged in' : 'Logged out');
-    
-    // Cập nhật UI dựa trên trạng thái đăng nhập
-    showAppropriateContainer(isLoggedIn);
-    
-    // Nếu đăng nhập thành công, tải lịch sử phân tích
-    if (isLoggedIn && UI && typeof UI.loadAnalysisHistory === 'function') {
-        UI.loadAnalysisHistory();
-    }
-});
 /**
- * Xử lý sự kiện click cho tab thông tin
- * Thêm vào script.js hoặc app.js
+ * Sửa lỗi tab thông tin
  */
-document.addEventListener('DOMContentLoaded', function() {
-    // Đảm bảo tab thông tin hoạt động đúng
-    function setupInfoTabs() {
-        const tabs = document.querySelectorAll('.info-tab-button');
-        if (tabs.length === 0) return;
-        
-        tabs.forEach(tab => {
-            tab.addEventListener('click', function() {
-                // Bỏ active tất cả tab
-                tabs.forEach(t => t.classList.remove('active'));
-                
-                // Thêm active cho tab hiện tại
-                this.classList.add('active');
-                
-                // Lấy tên tab
-                const tabName = this.getAttribute('data-tab');
-                if (!tabName) return;
-                
-                // Bỏ active tất cả nội dung
-                const contents = document.querySelectorAll('.info-tab-content');
-                contents.forEach(c => c.classList.remove('active'));
-                
-                // Thêm active cho nội dung tương ứng
-                const targetContent = document.getElementById(`${tabName}-tab`);
-                if (targetContent) {
-                    targetContent.classList.add('active');
-                }
-                
-                // Cuộn tab đang chọn vào giữa view nếu cần
-                const tabContainer = document.querySelector('.info-tabs');
-                if (tabContainer) {
-                    const tabRect = this.getBoundingClientRect();
-                    const containerRect = tabContainer.getBoundingClientRect();
-                    
-                    // Tính toán vị trí cuộn để đưa tab vào giữa
-                    if (tabRect.left < containerRect.left || tabRect.right > containerRect.right) {
-                        const scrollLeft = this.offsetLeft - (tabContainer.clientWidth / 2) + (this.clientWidth / 2);
-                        tabContainer.scrollTo({
-                            left: scrollLeft,
-                            behavior: 'smooth'
-                        });
-                    }
-                }
-            });
-        });
-    }
+function fixInfoTabs() {
+    const tabs = document.querySelectorAll('.info-tab-button');
+    if (!tabs.length) return;
     
-    // Gọi hàm thiết lập
-    setupInfoTabs();
-    
-    // Đăng ký lại nếu DOM thay đổi (ví dụ khi chuyển view)
-    const observer = new MutationObserver(function(mutations) {
-        let shouldResetup = false;
+    // Thêm CSS sửa lỗi hiển thị tab
+    const style = document.createElement('style');
+    style.textContent = `
+        /* Fix cho tab thông tin */
+        .info-tabs {
+            display: flex;
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            background-color: #f8f8f8;
+            border-bottom: 1px solid #e0e0e0;
+        }
         
-        mutations.forEach(mutation => {
-            if (mutation.type === 'childList' && 
-                (mutation.target.classList.contains('info-tabs') || 
-                 mutation.target.id === 'info-panel')) {
-                shouldResetup = true;
+        .info-tabs::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .info-tab-button {
+            flex: 1;
+            min-width: 80px;
+            white-space: nowrap;
+            padding: 10px 15px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: #666;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .info-tab-button.active {
+            border-bottom-color: var(--primary-color);
+            color: var(--primary-color);
+            font-weight: 600;
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Sửa hàm xử lý tab thông tin
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const tabName = this.getAttribute('data-tab');
+            if (!tabName) return;
+            
+            // Cập nhật trạng thái active của tab
+            const allTabs = document.querySelectorAll('.info-tab-button');
+            allTabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Cập nhật nội dung tab
+            const allContents = document.querySelectorAll('.info-tab-content');
+            allContents.forEach(c => c.classList.remove('active'));
+            
+            const targetContent = document.getElementById(`${tabName}-tab`);
+            if (targetContent) {
+                targetContent.classList.add('active');
             }
         });
-        
-        if (shouldResetup) {
-            setupInfoTabs();
-        }
     });
+}
+
+/**
+ * Sửa lỗi hiển thị typing indicator
+ */
+function fixTypingIndicator() {
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (!typingIndicator) return;
     
-    const infoPanel = document.getElementById('info-panel');
-    if (infoPanel) {
-        observer.observe(infoPanel, { childList: true, subtree: true });
-    }
-});
-// Khắc phục toàn diện cho khung chat
-document.addEventListener('DOMContentLoaded', function() {
+    // Đảm bảo typing indicator ẩn khi khởi tạo
+    typingIndicator.classList.add('hidden');
+    
+    // Thêm CSS cho typing indicator
+    const style = document.createElement('style');
+    style.textContent = `
+        /* Sửa lỗi hiển thị typing indicator */
+        #typing-indicator.hidden {
+            display: none !important;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+/**
+ * Sửa lỗi khung chat
+ */
+function fixChatFramework() {
     console.log('Installing comprehensive chat fix');
     
     setTimeout(function() {
@@ -386,14 +584,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log('Processing message:', text);
                     
                     // Hiển thị tin nhắn người dùng
-                    const template = document.getElementById('user-message-template');
-                    if (template) {
-                        const messageElement = template.content.cloneNode(true);
-                        const messageDiv = messageElement.querySelector('.message');
-                        messageDiv.id = `msg_user_${Date.now()}`;
-                        messageDiv.querySelector('.message-content').textContent = text;
-                        chatMessages.appendChild(messageElement);
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    if (typeof UI !== 'undefined' && UI && typeof UI.addUserMessage === 'function') {
+                        UI.addUserMessage(text);
+                    } else {
+                        // Fallback nếu UI không khả dụng
+                        const template = document.getElementById('user-message-template');
+                        if (template) {
+                            const messageElement = template.content.cloneNode(true);
+                            const messageDiv = messageElement.querySelector('.message');
+                            messageDiv.id = `msg_user_${Date.now()}`;
+                            messageDiv.querySelector('.message-content').textContent = text;
+                            chatMessages.appendChild(messageElement);
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                        }
                     }
                     
                     // Xóa nội dung input
@@ -405,7 +608,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         typingIndicator.classList.remove('hidden');
                     }
                     
-                    // Định rõ thành phần Chat.processUserInput
+                    // Xử lý tin nhắn
                     try {
                         if (window.Chat && typeof window.Chat.processUserInput === 'function') {
                             window.Chat.processUserInput(text);
@@ -432,6 +635,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     } catch (error) {
                         console.error('Error calling processUserInput:', error);
+                        // Ẩn typing indicator nếu có lỗi
+                        if (typingIndicator) {
+                            typingIndicator.classList.add('hidden');
+                        }
                     }
                 }
                 
@@ -454,5 +661,45 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('Error applying chat fix:', error);
         }
-    }, 1000); // Đợi 1 giây để đảm bảo các script khác đã chạy xong
+    }, 500); // Đợi 0.5 giây để đảm bảo các script khác đã chạy xong
+}
+
+/**
+ * Handle window resize event
+ * Adjusts UI based on screen size
+ */
+window.addEventListener('resize', function() {
+    // Close info panel on mobile when resizing to desktop
+    if (window.innerWidth > 992) {
+        if (typeof UI !== 'undefined' && UI && typeof UI.closeInfoPanel === 'function') {
+            UI.closeInfoPanel();
+        } else {
+            // Fallback nếu UI không khả dụng
+            const infoPanel = document.getElementById('info-panel');
+            const overlay = document.getElementById('overlay');
+            if (infoPanel && overlay) {
+                infoPanel.classList.remove('visible');
+                overlay.classList.remove('visible');
+            }
+        }
+    }
+});
+
+// Lắng nghe sự kiện thay đổi trạng thái đăng nhập
+document.addEventListener('authStateChanged', function() {
+    const isLoggedIn = typeof Auth !== 'undefined' && Auth && typeof Auth.isAuthenticated === 'function' 
+        ? Auth.isAuthenticated() 
+        : false;
+        
+    debug('Auth state changed event:', isLoggedIn ? 'Logged in' : 'Logged out');
+    
+    // Cập nhật UI dựa trên trạng thái đăng nhập
+    showAppropriateContainer(isLoggedIn);
+    
+    // Nếu đăng nhập thành công, tải lịch sử phân tích
+    if (isLoggedIn && typeof UI !== 'undefined' && UI && typeof UI.loadAnalysisHistory === 'function') {
+        UI.loadAnalysisHistory().catch(error => {
+            debug('Error loading history:', error);
+        });
+    }
 });
