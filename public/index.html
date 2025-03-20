@@ -250,51 +250,52 @@
     <script src="js/ui.js"></script>
     <script src="js/chat.js"></script>
     <script src="js/app.js"></script>
-    // Thêm script này vào cuối file body để điều chỉnh layout
-document.addEventListener('DOMContentLoaded', function() {
-    // Hàm kiểm tra thiết bị di động
-    function isMobile() {
-        return window.innerWidth <= 992;
-    }
-    
-    // Hàm điều chỉnh layout cho mobile
-    function adjustMobileLayout() {
-        if (isMobile()) {
-            // Tìm các phần tử cần di chuyển
-            const header = document.querySelector('header');
-            const container = document.querySelector('main.container');
-            const userHeader = document.querySelector('.user-header');
-            const appContainer = document.getElementById('app-container');
-            
-            // Di chuyển user-header lên gần với header chính nếu có thể
-            if (header && userHeader && container && appContainer) {
-                // Tạo container mới cho user-header nếu chưa có
-                let userHeaderContainer = document.getElementById('mobile-user-header-container');
+    <script 
+    document.addEventListener('DOMContentLoaded', function() {
+        // Hàm kiểm tra thiết bị di động
+        function isMobile() {
+            return window.innerWidth <= 992;
+        }
+        
+        // Hàm điều chỉnh layout cho mobile
+        function adjustMobileLayout() {
+            if (isMobile()) {
+                // Tìm các phần tử cần di chuyển
+                const header = document.querySelector('header');
+                const container = document.querySelector('main.container');
+                const userHeader = document.querySelector('.user-header');
+                const appContainer = document.getElementById('app-container');
                 
-                if (!userHeaderContainer) {
-                    userHeaderContainer = document.createElement('div');
-                    userHeaderContainer.id = 'mobile-user-header-container';
-                    userHeaderContainer.style.padding = '0 10px';
-                    userHeaderContainer.style.maxWidth = '100%';
-                    userHeaderContainer.style.margin = '0 auto';
+                // Di chuyển user-header lên gần với header chính nếu có thể
+                if (header && userHeader && container && appContainer) {
+                    // Tạo container mới cho user-header nếu chưa có
+                    let userHeaderContainer = document.getElementById('mobile-user-header-container');
                     
-                    // Chèn ngay sau header
-                    header.parentNode.insertBefore(userHeaderContainer, header.nextSibling);
-                }
-                
-                // Di chuyển user-header vào container mới
-                if (userHeader.parentNode !== userHeaderContainer) {
-                    userHeaderContainer.appendChild(userHeader);
+                    if (!userHeaderContainer) {
+                        userHeaderContainer = document.createElement('div');
+                        userHeaderContainer.id = 'mobile-user-header-container';
+                        userHeaderContainer.style.padding = '0 10px';
+                        userHeaderContainer.style.maxWidth = '100%';
+                        userHeaderContainer.style.margin = '0 auto';
+                        
+                        // Chèn ngay sau header
+                        header.parentNode.insertBefore(userHeaderContainer, header.nextSibling);
+                    }
+                    
+                    // Di chuyển user-header vào container mới
+                    if (userHeader.parentNode !== userHeaderContainer) {
+                        userHeaderContainer.appendChild(userHeader);
+                    }
                 }
             }
         }
-    }
-    
-    // Điều chỉnh layout ban đầu
-    adjustMobileLayout();
-    
-    // Điều chỉnh lại khi thay đổi kích thước màn hình
-    window.addEventListener('resize', adjustMobileLayout);
-});
+        
+        // Điều chỉnh layout ban đầu
+        adjustMobileLayout();
+        
+        // Điều chỉnh lại khi thay đổi kích thước màn hình
+        window.addEventListener('resize', adjustMobileLayout);
+    });
+        </script>
 </body>
 </html>
