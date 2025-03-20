@@ -2,11 +2,12 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Phân Tích Số Điện Thoại</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/mobile.css">
     <link rel="stylesheet" href="css/analysis.css">
+    <link rel="stylesheet" href="css/improved-tabs.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* Style để ẩn tất cả container khi trang vừa tải */
@@ -46,9 +47,11 @@
     </style>
 </head>
 <body>
+    <!-- Header chính -->
     <header>
         <div class="container">
             <h2>Phân Tích Số Điện Thoại</h2>
+            <p>Tìm hiểu ý nghĩa số của bạn theo phương pháp Tứ Cát Tứ Hung</p>
         </div>
     </header>
 
@@ -87,22 +90,7 @@
                 
                 <!-- Form đăng ký -->
                 <div class="auth-form" id="register-form">
-                    <div class="form-group">
-                        <label for="register-name">Họ tên</label>
-                        <input type="text" id="register-name" placeholder="Họ tên của bạn">
-                    </div>
-                    <div class="form-group">
-                        <label for="register-email">Email</label>
-                        <input type="email" id="register-email" placeholder="Email của bạn">
-                    </div>
-                    <div class="form-group">
-                        <label for="register-password">Mật khẩu</label>
-                        <input type="password" id="register-password" placeholder="Mật khẩu (ít nhất 6 ký tự)">
-                    </div>
-                    <div class="form-action">
-                        <button id="register-btn" class="btn-primary">Đăng Ký</button>
-                    </div>
-                    <div class="auth-message" id="register-message"></div>
+                    <!-- Nội dung form đăng ký -->
                 </div>
             </div>
         </div>
@@ -111,16 +99,18 @@
         <div id="app-container" class="app-container">
             <div class="user-header">
                 <div class="user-info">
-                    <span id="user-name">Xin chào</span>
+                    <span id="user-name">Xin chào, nguyen huy thanh</span>
                 </div>
-                <button id="logout-btn" class="btn-outline">Đăng Xuất</button>
+                <button id="logout-btn" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i> Đăng Xuất
+                </button>
             </div>
 
             <div class="main-content">
                 <!-- Panel phân tích số điện thoại - Phần trọng tâm -->
                 <div class="chat-panel">
                     <div class="chat-header">
-                        <h2>Phân tích số điện thoại</h2>
+                        <h2>Trò chuyện</h2>
                         <div class="chat-tools">
                             <button id="toggle-info-panel" title="Hiện/ẩn thông tin" class="mobile-only">
                                 <i class="fas fa-info-circle"></i>
@@ -159,26 +149,40 @@
                     </div>
                     
                     <div class="info-tabs">
-                        <button class="info-tab-button active" data-tab="method">Phương pháp</button>
-                        <button class="info-tab-button" data-tab="history">Lịch sử</button>
+                        <button class="info-tab-button active" data-tab="history">Lịch sử</button>
                         <button class="info-tab-button" data-tab="account">Tài khoản</button>
                     </div>
                     
                     <!-- Nội dung các tab -->
-                    <div class="info-tab-content active" id="method-tab">
-                        <!-- Nội dung về phương pháp -->
-                    </div>
-                    
-                    <div class="info-tab-content" id="history-tab">
-                        <!-- Nội dung lịch sử phân tích -->
+                    <div class="info-tab-content active" id="history-tab">
+                        <div class="history-header">
+                            <h4>Lịch sử phân tích</h4>
+                            <button id="clear-history" class="clear-button">Xóa lịch sử</button>
+                        </div>
+                        <div id="analysis-history" class="analysis-history-container">
+                            <!-- Lịch sử phân tích sẽ được hiển thị ở đây -->
+                            <div class="empty-history-message">Đang tải lịch sử...</div>
+                        </div>
                     </div>
                     
                     <div class="info-tab-content" id="account-tab">
-                        <!-- Nội dung thông tin tài khoản -->
+                        <div class="account-section">
+                            <h4>Thông tin tài khoản</h4>
+                            <div class="account-info">
+                                <p><strong>Tên:</strong> <span id="account-name"></span></p>
+                                <p><strong>Email:</strong> <span id="account-email"></span></p>
+                                <p><strong>Ngày tạo:</strong> <span id="account-created"></span></p>
+                            </div>
+                            <button id="logout-btn-alt" class="btn-logout-alt">
+                                <i class="fas fa-sign-out-alt"></i> Đăng Xuất
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+
     </main>
 
     <div class="overlay" id="overlay"></div>
@@ -242,60 +246,15 @@
         <div class="history-time"></div>
     </div>
 </template>
-
+ 
     <!-- JavaScript files -->
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/analysis.js"></script>
+    <script src="js/conversation-state.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/chat.js"></script>
     <script src="js/app.js"></script>
-    <script 
-    document.addEventListener('DOMContentLoaded', function() {
-        // Hàm kiểm tra thiết bị di động
-        function isMobile() {
-            return window.innerWidth <= 992;
-        }
-        
-        // Hàm điều chỉnh layout cho mobile
-        function adjustMobileLayout() {
-            if (isMobile()) {
-                // Tìm các phần tử cần di chuyển
-                const header = document.querySelector('header');
-                const container = document.querySelector('main.container');
-                const userHeader = document.querySelector('.user-header');
-                const appContainer = document.getElementById('app-container');
-                
-                // Di chuyển user-header lên gần với header chính nếu có thể
-                if (header && userHeader && container && appContainer) {
-                    // Tạo container mới cho user-header nếu chưa có
-                    let userHeaderContainer = document.getElementById('mobile-user-header-container');
-                    
-                    if (!userHeaderContainer) {
-                        userHeaderContainer = document.createElement('div');
-                        userHeaderContainer.id = 'mobile-user-header-container';
-                        userHeaderContainer.style.padding = '0 10px';
-                        userHeaderContainer.style.maxWidth = '100%';
-                        userHeaderContainer.style.margin = '0 auto';
-                        
-                        // Chèn ngay sau header
-                        header.parentNode.insertBefore(userHeaderContainer, header.nextSibling);
-                    }
-                    
-                    // Di chuyển user-header vào container mới
-                    if (userHeader.parentNode !== userHeaderContainer) {
-                        userHeaderContainer.appendChild(userHeader);
-                    }
-                }
-            }
-        }
-        
-        // Điều chỉnh layout ban đầu
-        adjustMobileLayout();
-        
-        // Điều chỉnh lại khi thay đổi kích thước màn hình
-        window.addEventListener('resize', adjustMobileLayout);
-    });
-        </script>
 </body>
 </html>
