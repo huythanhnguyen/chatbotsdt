@@ -281,7 +281,82 @@ document.addEventListener('authStateChanged', function() {
         UI.loadAnalysisHistory();
     }
 });
-
+/**
+ * Xử lý sự kiện click cho tab thông tin
+ * Thêm vào script.js hoặc app.js
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    // Đảm bảo tab thông tin hoạt động đúng
+    function setupInfoTabs() {
+        const tabs = document.querySelectorAll('.info-tab-button');
+        if (tabs.length === 0) return;
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Bỏ active tất cả tab
+                tabs.forEach(t => t.classList.remove('active'));
+                
+                // Thêm active cho tab hiện tại
+                this.classList.add('active');
+                
+                // Lấy tên tab
+                const tabName = this.getAttribute('data-tab');
+                if (!tabName) return;
+                
+                // Bỏ active tất cả nội dung
+                const contents = document.querySelectorAll('.info-tab-content');
+                contents.forEach(c => c.classList.remove('active'));
+                
+                // Thêm active cho nội dung tương ứng
+                const targetContent = document.getElementById(`${tabName}-tab`);
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                }
+                
+                // Cuộn tab đang chọn vào giữa view nếu cần
+                const tabContainer = document.querySelector('.info-tabs');
+                if (tabContainer) {
+                    const tabRect = this.getBoundingClientRect();
+                    const containerRect = tabContainer.getBoundingClientRect();
+                    
+                    // Tính toán vị trí cuộn để đưa tab vào giữa
+                    if (tabRect.left < containerRect.left || tabRect.right > containerRect.right) {
+                        const scrollLeft = this.offsetLeft - (tabContainer.clientWidth / 2) + (this.clientWidth / 2);
+                        tabContainer.scrollTo({
+                            left: scrollLeft,
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+            });
+        });
+    }
+    
+    // Gọi hàm thiết lập
+    setupInfoTabs();
+    
+    // Đăng ký lại nếu DOM thay đổi (ví dụ khi chuyển view)
+    const observer = new MutationObserver(function(mutations) {
+        let shouldResetup = false;
+        
+        mutations.forEach(mutation => {
+            if (mutation.type === 'childList' && 
+                (mutation.target.classList.contains('info-tabs') || 
+                 mutation.target.id === 'info-panel')) {
+                shouldResetup = true;
+            }
+        });
+        
+        if (shouldResetup) {
+            setupInfoTabs();
+        }
+    });
+    
+    const infoPanel = document.getElementById('info-panel');
+    if (infoPanel) {
+        observer.observe(infoPanel, { childList: true, subtree: true });
+    }
+});
 // Khắc phục toàn diện cho khung chat
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Installing comprehensive chat fix');
