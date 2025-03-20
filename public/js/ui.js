@@ -992,23 +992,21 @@ function formatAnalysisData(data) {
     /**
      * Show the typing indicator
      */
-    function showTypingIndicator() {
+    // Ghi đè lên các hàm hiện tại trong UI.js
+    UI.showTypingIndicator = function() {
         const typingIndicator = document.getElementById('typing-indicator');
         if (typingIndicator) {
             typingIndicator.classList.remove('hidden');
         }
-    }
+    };
     
-    /**
-     * Hide the typing indicator
-     */
-    function hideTypingIndicator() {
+    UI.hideTypingIndicator = function() {
         const typingIndicator = document.getElementById('typing-indicator');
         if (typingIndicator) {
             typingIndicator.classList.add('hidden');
         }
-    }
-    
+    };
+        
     /**
      * Set loading state
      * @param {boolean} isLoading - Whether loading is in progress
