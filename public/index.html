@@ -250,7 +250,7 @@
                 <h4>Cân bằng năng lượng</h4>
                 <div class="energy-balance"></div>
             </div>
-            <button class="details-toggle" data-expanded="false">Xem chi tiết</button>
+            <button class="details-toggle" data-expanded="false">Chi tiết</button>
         </div>
     </div>
 </template>
@@ -263,14 +263,17 @@
 </template>
  
     <!-- JavaScript files -->
-    <script src="js/config.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/analysis.js"></script>
-    <script src="js/conversation-state.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/chat.js"></script>
-    <script src="js/app.js"></script>
+<!-- In your HTML file -->
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/conversation-state.js"></script>
+<script src="js/ui.js"></script>
+<!-- analysis.js should be here, after UI.js but before chat.js -->
+<script src="js/analysis.js"></script>
+<script src="js/chat.js"></script>
+<script src="js/app.js"></script>
+<script src="js/render.js"></script>
     <!-- Thêm script dưới đây vào cuối file body, ngay trước thẻ đóng </body> -->
 <script>
     // Script sửa lỗi đăng ký
